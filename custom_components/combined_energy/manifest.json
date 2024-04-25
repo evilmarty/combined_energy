@@ -1,0 +1,14 @@
+{
+  "domain": "combined_energy",
+  "name": "Combined Energy",
+  "codeowners": ["@timsavage", "@evilmarty"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/evilmarty/combined_energy",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/evilmarty/combined_energy/issues",
+  "quality_scale": "silver",
+  "requirements": ["combined-energy-api==0.7"],
+  "version": "0.1.0"
+}
