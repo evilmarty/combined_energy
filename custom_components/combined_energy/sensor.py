@@ -1,4 +1,5 @@
 """Sensors and factory for enumerating devices from the Combined Energy API."""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -126,14 +127,14 @@ SENSOR_DESCRIPTIONS = {
             SensorEntityDescription(
                 key="available_energy",
                 translation_key="water_heater_available_energy",
-                state_class=SensorStateClass.MEASUREMENT,
+                state_class=SensorStateClass.TOTAL_INCREASING,
                 native_unit_of_measurement=UnitOfVolume.LITERS,
                 device_class=SensorDeviceClass.WATER,
             ),
             SensorEntityDescription(
                 key="max_energy",
                 translation_key="water_heater_max_energy",
-                state_class=SensorStateClass.MEASUREMENT,
+                state_class=SensorStateClass.TOTAL,
                 native_unit_of_measurement=UnitOfVolume.LITERS,
                 device_class=SensorDeviceClass.WATER,
             ),
