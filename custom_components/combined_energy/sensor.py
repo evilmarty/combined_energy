@@ -359,7 +359,6 @@ class CombinedEnergyReadingsSensor(CoordinatorEntity, SensorEntity):
 
     entity_description: SensorEntityDescription
     _attr_has_entity_name = True
-    _attr_name = None
 
     def __init__(
         self,
