@@ -9,6 +9,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/evilmarty/combined_energy/issues",
   "quality_scale": "silver",
-  "requirements": ["combined-energy-api==0.7"],
+  "requirements": ["combined-energy-api==0.8"],
   "version": "0.1.0"
 }
