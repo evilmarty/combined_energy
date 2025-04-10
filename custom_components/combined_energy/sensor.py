@@ -205,7 +205,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="energy_supplied",
             translation_key="grid_meter_energy_supplied",
-            icon="mdi:transmission-tower",
+            icon="mdi:transmission-tower-export",
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
@@ -213,7 +213,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="power_supply",
             translation_key="grid_meter_power_supply",
-            icon="mdi:transmission-tower",
+            icon="mdi:transmission-tower-export",
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfPower.KILO_WATT,
             device_class=SensorDeviceClass.POWER,
@@ -221,7 +221,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="energy_consumed",
             translation_key="grid_meter_energy_consumed",
-            icon="mdi:transmission-tower",
+            icon="mdi:transmission-tower-import",
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
@@ -229,6 +229,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="power_consumption",
             translation_key="grid_meter_power_consumption",
+            icon="mdi:transmission-tower-import",
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfPower.KILO_WATT,
             device_class=SensorDeviceClass.POWER,
@@ -236,7 +237,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="energy_consumed_solar",
             translation_key="grid_meter_energy_consumed_solar",
-            icon="mdi:transmission-tower",
+            icon="mdi:solar-power",
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
@@ -254,7 +255,7 @@ SENSOR_DESCRIPTIONS = {
         SensorEntityDescription(
             key="energy_consumed_battery",
             translation_key="grid_meter_energy_consumed_battery",
-            icon="mdi:transmission-tower",
+            icon="mdi:home-battery",
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
