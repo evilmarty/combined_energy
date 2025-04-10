@@ -49,7 +49,7 @@ class CombinedEnergyCoordinator(DataUpdateCoordinator[_T]):
         try:
             self.data = await self._update_data()
         except CombinedEnergyAuthError as ex:
-            raise ConfigEntryAuthFailed from ex
+            raise UpdateFailed("Authorization error with Combined Energy") from ex
         except CombinedEnergyError as ex:
             raise UpdateFailed("Error updating Combined Energy") from ex
         return self.data
