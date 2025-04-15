@@ -1,0 +1,30 @@
+{
+  "status": "ok",
+  "planId": 12345,
+  "tariff": {
+    "dnspCode": "EX",
+    "state": "XXX",
+    "retailerCode": "XXXX",
+    "retailerName": "X",
+    "planId": 12345,
+    "planName": "My custom plan",
+    "tariffType": "FLAT",
+    "source": "CUSTOM",
+    "dailyFee": 100.1,
+    "feedInCost": 1,
+    "asAt": 1659664663927,
+    "updated": 1725869558078,
+    "extSource": null,
+    "extPlanId": null,
+    "url": null,
+    "groups": [
+      {
+        "days": [1, 2, 3, 4, 5, 6, 7],
+        "months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "periods": [0],
+        "costs": [10.12]
+      }
+    ]
+  }
+}
+
