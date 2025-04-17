@@ -1,4 +1,5 @@
 """The Combined Energy integration."""
+
 from __future__ import annotations
 
 from combined_energy import CombinedEnergy
@@ -25,6 +26,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Combined Energy from a config entry."""
 
+    # integration = await loader.async_get_integration(hass, self.domain)
     api = CombinedEnergy(
         mobile_or_email=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
@@ -40,7 +42,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady from ex
 
     # Initialise the "log session refresh" coordinator
-    log_session = CombinedEnergyLogSessionCoordinator(hass, api)
+    log_session = CombinedEnergyLogSessionCoordinator(
+        hass=hass, api=api, config_entry=entry
+    )
     await log_session.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {

@@ -1,4 +1,5 @@
 """DataUpdateCoordinator for the PVOutput integration."""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -10,9 +11,15 @@ from combined_energy.exceptions import CombinedEnergyAuthError, CombinedEnergyEr
 from combined_energy.helpers import ReadingsIterator
 from combined_energy.models import DeviceReadings
 
+from homeassistant.components.sensor import UndefinedType
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    UNDEFINED,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .const import (
     LOG_SESSION_REFRESH_DELAY,
@@ -29,12 +36,17 @@ class CombinedEnergyCoordinator(DataUpdateCoordinator[_T]):
     """Get and update the latest data."""
 
     def __init__(
-        self, hass: HomeAssistant, api: CombinedEnergy, update_interval: timedelta
+        self,
+        hass: HomeAssistant,
+        api: CombinedEnergy,
+        update_interval: timedelta,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
     ) -> None:
         """Initialize coordinator."""
         super().__init__(
             hass,
             LOGGER,
+            config_entry=config_entry,
             name=type(self).__name__,
             update_interval=update_interval,
         )
@@ -62,9 +74,19 @@ class CombinedEnergyLogSessionCoordinator(CombinedEnergyCoordinator[None]):
     readings data stops being returned.
     """
 
-    def __init__(self, hass: HomeAssistant, api: CombinedEnergy) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: CombinedEnergy,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
+    ) -> None:
         """Initialize coordinator."""
-        super().__init__(hass, api, LOG_SESSION_REFRESH_DELAY)
+        super().__init__(
+            hass=hass,
+            api=api,
+            update_interval=LOG_SESSION_REFRESH_DELAY,
+            config_entry=config_entry,
+        )
         self.async_add_listener(self.update_listener)
 
     @staticmethod
@@ -82,9 +104,19 @@ class CombinedEnergyReadingsCoordinator(
 ):
     """Get and update the latest readings data."""
 
-    def __init__(self, hass: HomeAssistant, api: CombinedEnergy) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: CombinedEnergy,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
+    ) -> None:
         """Initialize the coordinator."""
-        super().__init__(hass, api, READINGS_UPDATE_DELAY)
+        super().__init__(
+            hass=hass,
+            api=api,
+            update_interval=READINGS_UPDATE_DELAY,
+            config_entry=config_entry,
+        )
         self._readings_iterator = ReadingsIterator(
             self.api,
             increment=READINGS_INCREMENT,

@@ -1,4 +1,5 @@
 """Constants for the Combined Energy integration."""
+
 from datetime import timedelta
 import logging
 from typing import Final
@@ -23,3 +24,8 @@ READINGS_UPDATE_DELAY: Final[timedelta] = timedelta(minutes=1)
 # Increment size in seconds; Valid values are 5/300/1800 (5s/5m/30m)
 READINGS_INCREMENT: Final[int] = 5
 READINGS_INITIAL_DELTA: Final[timedelta] = timedelta(seconds=40)
+
+# Base urls for Combined Energy API
+BASE_URL_USER_ACCESS: Final[str] = "https://onwatch.combined.energy"
+BASE_URL_DATA_ACCESS: Final[str] = "https://ds20.combined.energy/data-service"
+BASE_URL_MQTT_ACCESS: Final[str] = "https://dp20.combined.energy"

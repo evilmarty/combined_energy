@@ -9,7 +9,6 @@ from typing import Any, cast
 
 from combined_energy import CombinedEnergy
 from combined_energy.models import Device, DeviceReadings, Installation
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -28,11 +27,11 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DATA_API_CLIENT, DATA_INSTALLATION, DOMAIN
+from .const import DATA_API_CLIENT, DATA_INSTALLATION, DOMAIN, LOGGER
 from .coordinator import CombinedEnergyReadingsCoordinator
 
 # Common sensors for all consumer devices
-SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
+SENSOR_DESCRIPTIONS_ENERGY_CONSUMER = [
     SensorEntityDescription(
         key="energy_consumed",
         translation_key="energy_consumed",
@@ -41,28 +40,12 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
     ),
     SensorEntityDescription(
-        key="power_consumption",
-        translation_key="power_consumption",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
-    ),
-    SensorEntityDescription(
         key="energy_consumed_solar",
         translation_key="energy_consumed_solar",
         icon="mdi:solar-power",
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="power_consumption_solar",
-        translation_key="power_consumption_solar",
-        icon="mdi:solar-power",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
@@ -75,21 +58,39 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
-        key="power_consumption_battery",
-        translation_key="power_consumption_battery",
-        icon="mdi:home-battery",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
         key="energy_consumed_grid",
         translation_key="energy_consumed_grid",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+    ),
+]
+SENSOR_DESCRIPTIONS_POWER_CONSUMER = [
+    SensorEntityDescription(
+        key="power_consumption",
+        translation_key="power_consumption",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
+    ),
+    SensorEntityDescription(
+        key="power_consumption_solar",
+        translation_key="power_consumption_solar",
+        icon="mdi:solar-power",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key="power_consumption_battery",
+        translation_key="power_consumption_battery",
+        icon="mdi:home-battery",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
@@ -102,6 +103,9 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         entity_registry_enabled_default=False,
     ),
 ]
+SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = (
+    SENSOR_DESCRIPTIONS_ENERGY_CONSUMER + SENSOR_DESCRIPTIONS_POWER_CONSUMER
+)
 SENSOR_DESCRIPTIONS = {
     "SOLAR_PV": [
         SensorEntityDescription(
@@ -121,86 +125,84 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
         ),
     ],
-    "WATER_HEATER": (
-        SENSOR_DESCRIPTIONS_GENERIC_CONSUMER
-        + [
-            SensorEntityDescription(
-                key="available_energy",
-                translation_key="water_heater_available_energy",
-                state_class=SensorStateClass.TOTAL_INCREASING,
-                native_unit_of_measurement=UnitOfVolume.LITERS,
-                device_class=SensorDeviceClass.WATER,
-            ),
-            SensorEntityDescription(
-                key="max_energy",
-                translation_key="water_heater_max_energy",
-                state_class=SensorStateClass.TOTAL,
-                native_unit_of_measurement=UnitOfVolume.LITERS,
-                device_class=SensorDeviceClass.WATER,
-            ),
-            SensorEntityDescription(
-                key="output_temp",
-                translation_key="water_heater_output_temp",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor1",
-                translation_key="water_heater_temp_sensor1",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor2",
-                translation_key="water_heater_temp_sensor2",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor3",
-                translation_key="water_heater_temp_sensor3",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor4",
-                translation_key="water_heater_temp_sensor4",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor5",
-                translation_key="water_heater_temp_sensor5",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-            SensorEntityDescription(
-                key="temp_sensor6",
-                translation_key="water_heater_temp_sensor6",
-                icon="mdi:thermometer-water",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-                entity_registry_enabled_default=False,
-            ),
-        ]
-    ),
+    "WATER_HEATER": [
+        *SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
+        SensorEntityDescription(
+            key="available_energy",
+            translation_key="water_heater_available_energy",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement=UnitOfVolume.LITERS,
+            device_class=SensorDeviceClass.WATER,
+        ),
+        SensorEntityDescription(
+            key="max_energy",
+            translation_key="water_heater_max_energy",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfVolume.LITERS,
+            device_class=SensorDeviceClass.WATER,
+        ),
+        SensorEntityDescription(
+            key="output_temp",
+            translation_key="water_heater_output_temp",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor1",
+            translation_key="water_heater_temp_sensor1",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor2",
+            translation_key="water_heater_temp_sensor2",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor3",
+            translation_key="water_heater_temp_sensor3",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor4",
+            translation_key="water_heater_temp_sensor4",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor5",
+            translation_key="water_heater_temp_sensor5",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="temp_sensor6",
+            translation_key="water_heater_temp_sensor6",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            entity_registry_enabled_default=False,
+        ),
+    ],
     "GRID_METER": [
         SensorEntityDescription(
             key="energy_supplied",
@@ -319,6 +321,43 @@ SENSOR_DESCRIPTIONS = {
     ],
     "GENERIC_CONSUMER": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
     "ENERGY_BALANCE": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
+    "COMBINER": [
+        *SENSOR_DESCRIPTIONS_ENERGY_CONSUMER,
+        SensorEntityDescription(
+            key="energy_supplied",
+            translation_key="combiner_energy_supplied",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+        ),
+        SensorEntityDescription(
+            key="energy_supplied_solar",
+            translation_key="combiner_energy_supplied_solar",
+            icon="mdi:solar-power",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="energy_supplied_battery",
+            translation_key="combiner_energy_supplied_battery",
+            icon="mdi:home-battery",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            entity_registry_enabled_default=False,
+        ),
+        SensorEntityDescription(
+            key="energy_supplied_grid",
+            translation_key="combiner_energy_supplied_grid",
+            icon="mdi:transmission-tower",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            entity_registry_enabled_default=False,
+        ),
+    ],
 }
 
 
@@ -333,9 +372,10 @@ async def async_setup_entry(
     installation: Installation = hass.data[DOMAIN][entry.entry_id][DATA_INSTALLATION]
 
     # Initialise readings coordinator
-    readings = CombinedEnergyReadingsCoordinator(hass, api)
+    readings = CombinedEnergyReadingsCoordinator(hass=hass, api=api, config_entry=entry)
     await readings.async_config_entry_first_refresh()
 
+    LOGGER.info("Setting up Combined Energy sensors")
     async_add_entities(_generate_sensors(installation, readings))
 
 
@@ -346,6 +386,11 @@ def _generate_sensors(
     """Generate sensor entities from installed devices."""
 
     for device in installation.devices:
+        LOGGER.info(
+            "Generating sensors for device %s (%s)",
+            device.device_id,
+            device.device_type,
+        )
         if descriptions := SENSOR_DESCRIPTIONS.get(device.device_type):
             # Generate sensors from descriptions for the current device type
             for description in descriptions:
