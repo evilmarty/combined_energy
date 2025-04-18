@@ -26,32 +26,17 @@
       "energy_consumed": {
         "name": "Energy Consumption"
       },
-      "power_consumption": {
-        "name": "Power Consumption"
-      },
       "energy_consumed_solar": {
         "name": "Energy Consumption Solar"
-      },
-      "power_consumption_solar": {
-        "name": "Power Consumption Solar"
       },
       "energy_consumed_battery": {
         "name": "Energy Consumption Battery"
       },
-      "power_consumption_battery": {
-        "name": "Power Consumption Battery"
-      },
       "energy_consumed_grid": {
         "name": "Energy Consumption Grid"
       },
-      "power_consumption_grid": {
-        "name": "Power Consumption Grid"
-      },
       "solar_pv_energy_supplied": {
         "name": "Energy Supplied"
-      },
-      "solar_pv_power_supply": {
-        "name": "Power Supplied"
       },
       "water_heater_available_energy": {
         "name": "Hot Water Available"
@@ -83,26 +68,14 @@
       "grid_meter_energy_supplied": {
         "name": "Energy Import"
       },
-      "grid_meter_power_supply": {
-        "name": "Power Import"
-      },
       "grid_meter_energy_consumed": {
         "name": "Energy Export"
-      },
-      "grid_meter_power_consumption": {
-        "name": "Power Export"
       },
       "grid_meter_energy_consumed_solar": {
         "name": "Energy Export Solar"
       },
-      "grid_meter_power_consumption_solar": {
-        "name": "Power Export Solar"
-      },
       "grid_meter_energy_consumed_battery": {
         "name": "Energy Export Battery"
-      },
-      "grid_meter_power_consumption_battery": {
-        "name": "Power Export Battery"
       },
       "grid_meter_power_factor_a": {
         "name": "Power Factor A"
@@ -121,6 +94,33 @@
       },
       "grid_meter_voltage_c": {
         "name": "Voltage C"
+      },
+      "combiner_energy_supplied": {
+        "name": "Energy Supplied"
+      },
+      "combiner_energy_supplied_solar": {
+        "name": "Energy Supplied Solar"
+      },
+      "combiner_energy_supplied_battery": {
+        "name": "Energy Supplied Battery"
+      },
+      "combiner_energy_supplied_grid": {
+        "name": "Energy Supplied Grid"
+      },
+      "combiner_energy_consumed_other": {
+        "name": "Energy Consumption Other"
+      },
+      "combiner_energy_consumed_other_solar": {
+        "name": "Energy Consumption Other Solar"
+      },
+      "combiner_energy_consumed_other_battery": {
+        "name": "Energy Consumption Other Battery"
+      },
+      "combiner_energy_consumed_other_grid": {
+        "name": "Energy Consumption Other Grid"
+      },
+      "combiner_energy_correction": {
+        "name": "Energy Correction"
       }
     }
   }
