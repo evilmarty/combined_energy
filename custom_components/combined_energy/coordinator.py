@@ -1,101 +1,100 @@
 """DataUpdateCoordinator for the PVOutput integration."""
+
 from __future__ import annotations
 
-from abc import abstractmethod
+import asyncio
 from datetime import timedelta
-from typing import TypeVar
+from logging import Logger
 
-from combined_energy import CombinedEnergy
-from combined_energy.exceptions import CombinedEnergyAuthError, CombinedEnergyError
-from combined_energy.helpers import ReadingsIterator
-from combined_energy.models import DeviceReadings
+from custom_components.combined_energy.client import Client
+from custom_components.combined_energy.models import LogSession, Readings, TariffDetails
 
+from homeassistant.components.sensor import UndefinedType
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    UNDEFINED,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .const import (
     LOG_SESSION_REFRESH_DELAY,
     LOGGER,
-    READINGS_INCREMENT,
-    READINGS_INITIAL_DELTA,
     READINGS_UPDATE_DELAY,
+    TARIFF_DETAILS_UPDATE_DELAY,
 )
 
-_T = TypeVar("_T")
+CombinedEnergyLogSessionCoordinator = DataUpdateCoordinator[LogSession]
+CombinedEnergyTariffDetailsCoordinator = DataUpdateCoordinator[TariffDetails]
 
 
-class CombinedEnergyCoordinator(DataUpdateCoordinator[_T]):
-    """Get and update the latest data."""
+class CombinedEnergyCoordinator:
+    """Bulk creates coordinators for combined energy client."""
 
     def __init__(
-        self, hass: HomeAssistant, api: CombinedEnergy, update_interval: timedelta
+        self,
+        hass: HomeAssistant,
+        client: Client,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
     ) -> None:
-        """Initialize coordinator."""
+        """Initialize the coordinator."""
+        self.client = client
+        self.log_session = CombinedEnergyLogSessionCoordinator(
+            hass=hass,
+            logger=LOGGER,
+            config_entry=config_entry,
+            name="log_session",
+            update_interval=LOG_SESSION_REFRESH_DELAY,
+            update_method=client.start_log_session,
+        )
+        self.readings = CombinedEnergyReadingsCoordinator(
+            hass=hass,
+            client=client,
+            logger=LOGGER,
+            config_entry=config_entry,
+            update_interval=READINGS_UPDATE_DELAY,
+        )
+        self.tariff_details = CombinedEnergyTariffDetailsCoordinator(
+            hass=hass,
+            logger=LOGGER,
+            config_entry=config_entry,
+            name="tariff_details",
+            update_interval=TARIFF_DETAILS_UPDATE_DELAY,
+            update_method=client.tariff_details,
+        )
+
+    async def async_config_entry_first_refresh(self) -> None:
+        """Refresh all coordinators."""
+        await asyncio.gather(
+            self.log_session.async_config_entry_first_refresh(),
+            self.readings.async_config_entry_first_refresh(),
+            self.tariff_details.async_config_entry_first_refresh(),
+        )
+
+
+class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
+    """Coordinator for readings."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        client: Client,
+        logger: Logger,
+        update_interval: int,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
+    ) -> None:
+        """Initialize the coordinator."""
         super().__init__(
-            hass,
-            LOGGER,
-            name=type(self).__name__,
+            hass=hass,
+            logger=logger,
+            config_entry=config_entry,
+            name="readings",
             update_interval=update_interval,
         )
-        self.api = api
+        self.client = client
 
-    @abstractmethod
-    async def _update_data(self) -> _T:
-        """Update data."""
-
-    async def _async_update_data(self) -> _T:
-        """Update data with error handling."""
-        try:
-            self.data = await self._update_data()
-        except CombinedEnergyAuthError as ex:
-            raise UpdateFailed("Authorization error with Combined Energy") from ex
-        except CombinedEnergyError as ex:
-            raise UpdateFailed("Error updating Combined Energy") from ex
-        return self.data
-
-
-class CombinedEnergyLogSessionCoordinator(CombinedEnergyCoordinator[None]):
-    """Triggers a log session refresh event keep readings data flowing.
-
-    If this is not done periodically, the log session will expire and
-    readings data stops being returned.
-    """
-
-    def __init__(self, hass: HomeAssistant, api: CombinedEnergy) -> None:
-        """Initialize coordinator."""
-        super().__init__(hass, api, LOG_SESSION_REFRESH_DELAY)
-        self.async_add_listener(self.update_listener)
-
-    @staticmethod
-    def update_listener() -> None:
-        """Log that the session has been restarted."""
-        LOGGER.debug("Log session has been restarted")
-
-    async def _update_data(self) -> None:
-        """Update data."""
-        await self.api.start_log_session()
-
-
-class CombinedEnergyReadingsCoordinator(
-    CombinedEnergyCoordinator[dict[int, DeviceReadings]]
-):
-    """Get and update the latest readings data."""
-
-    def __init__(self, hass: HomeAssistant, api: CombinedEnergy) -> None:
-        """Initialize the coordinator."""
-        super().__init__(hass, api, READINGS_UPDATE_DELAY)
-        self._readings_iterator = ReadingsIterator(
-            self.api,
-            increment=READINGS_INCREMENT,
-            initial_delta=READINGS_INITIAL_DELTA,
-        )
-
-    async def _update_data(self) -> dict[int, DeviceReadings]:
-        """Update data."""
-        readings = await anext(self._readings_iterator)
-        return {
-            device.device_id: device
-            for device in readings.devices
-            if device.device_id is not None
-        }
+    async def _async_update_data(self) -> Readings:
+        """Fetch data from the API."""
+        range_start = getattr(self.data, "range_end", None)
+        return await self.client.readings(range_start=range_start)

@@ -121,6 +121,33 @@
       },
       "grid_meter_voltage_c": {
         "name": "Voltage C"
+      },
+      "combiner_energy_supplied": {
+        "name": "Energy Supplied"
+      },
+      "combiner_energy_supplied_solar": {
+        "name": "Energy Supplied Solar"
+      },
+      "combiner_energy_supplied_battery": {
+        "name": "Energy Supplied Battery"
+      },
+      "combiner_energy_supplied_grid": {
+        "name": "Energy Supplied Grid"
+      },
+      "combiner_energy_consumed_other": {
+        "name": "Energy Consumption Other"
+      },
+      "combiner_energy_consumed_other_solar": {
+        "name": "Energy Consumption Other Solar"
+      },
+      "combiner_energy_consumed_other_battery": {
+        "name": "Energy Consumption Other Battery"
+      },
+      "combiner_energy_consumed_other_grid": {
+        "name": "Energy Consumption Other Grid"
+      },
+      "combiner_energy_correction": {
+        "name": "Energy Correction"
       }
     }
   }
