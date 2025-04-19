@@ -23,7 +23,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CURRENCY_DOLLAR,
     PERCENTAGE,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -35,7 +34,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
+from .const import CURRENCY_AUD, DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
 from .coordinator import (
     CombinedEnergyCoordinator,
     CombinedEnergyReadingsCoordinator,
@@ -387,7 +386,7 @@ SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
         translation_key="tariff_details_daily_fee",
         icon="mdi:cash-sync",
         state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=CURRENCY_DOLLAR,
+        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
     ),
@@ -396,7 +395,7 @@ SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
         translation_key="tariff_details_feed_in_cost",
         icon="mdi:cash-plus",
         state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=CURRENCY_DOLLAR,
+        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
     ),
@@ -669,8 +668,8 @@ class PriceSensor(CombinedEnergyTariffSensor):
                 key="cost",
                 translation_key="tariff_details_cost",
                 icon="mdi:cash-minus",
-                state_class=SensorStateClass.MEASUREMENT,
-                native_unit_of_measurement=CURRENCY_DOLLAR,
+                state_class=SensorStateClass.TOTAL,
+                native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
                 device_class=SensorDeviceClass.MONETARY,
                 suggested_display_precision=2,
             ),
