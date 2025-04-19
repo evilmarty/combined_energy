@@ -469,3 +469,70 @@ class TestTariffDetails:
                 ),
             ],
         )
+
+    @pytest.mark.parametrize(
+        "datetime",
+        [
+            datetime(2025, 1, 1, 0, 27, 50),
+            datetime(2025, 1, 1, 6, 27, 50),
+            datetime(2025, 1, 1, 7, 27, 50),
+            datetime(2025, 1, 1, 15, 27, 50),
+            datetime(2025, 1, 1, 16, 27, 50),
+            datetime(2025, 1, 1, 19, 27, 50),
+            datetime(2025, 1, 1, 20, 27, 50),
+            datetime(2025, 1, 1, 21, 27, 50),
+            datetime(2025, 1, 1, 22, 27, 50),
+            datetime(2025, 1, 1, 23, 27, 50),
+            datetime(2025, 1, 4, 0, 27, 50),
+            datetime(2025, 1, 4, 6, 27, 50),
+            datetime(2025, 1, 4, 7, 27, 50),
+            datetime(2025, 1, 4, 21, 27, 50),
+            datetime(2025, 1, 4, 22, 27, 50),
+            datetime(2025, 1, 4, 23, 27, 50),
+        ],
+    )
+    @pytest.mark.parametrize("expected", [10.12])
+    def test_cost_at__flat(self, tariff_details: TariffDetails, datetime, expected):
+        """Test cost_at method with flat tariff."""
+        assert tariff_details.tariff.cost_at(datetime) == expected
+
+    @pytest.mark.parametrize(
+        ("datetime", "expected"),
+        [
+            (datetime(2025, 1, 1, 0, 27, 50), 15.74),
+            (datetime(2025, 1, 1, 6, 27, 50), 15.74),
+            (datetime(2025, 1, 1, 7, 27, 50), 16.93),
+            (datetime(2025, 1, 1, 15, 27, 50), 16.93),
+            (datetime(2025, 1, 1, 16, 27, 50), 27.96),
+            (datetime(2025, 1, 1, 19, 27, 50), 27.96),
+            (datetime(2025, 1, 1, 20, 27, 50), 16.93),
+            (datetime(2025, 1, 1, 21, 27, 50), 16.93),
+            (datetime(2025, 1, 1, 22, 27, 50), 15.74),
+            (datetime(2025, 1, 1, 23, 27, 50), 15.74),
+            (datetime(2025, 1, 4, 0, 27, 50), 15.74),
+            (datetime(2025, 1, 4, 6, 27, 50), 15.74),
+            (datetime(2025, 1, 4, 7, 27, 50), 16.93),
+            (datetime(2025, 1, 4, 21, 27, 50), 16.93),
+            (datetime(2025, 1, 4, 22, 27, 50), 15.74),
+            (datetime(2025, 1, 4, 23, 27, 50), 15.74),
+        ],
+    )
+    def test_cost_at__scheduled(
+        self, tariff_details: TariffDetails, datetime, expected
+    ):
+        """Test cost_at method with variable schedules."""
+        tariff_details.tariff.groups = [
+            TariffGroup(
+                days=[1, 2, 3, 4, 5],
+                months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                periods=[0, 7, 16, 20, 22],
+                costs=[15.74, 16.93, 27.96, 16.93, 15.74],
+            ),
+            TariffGroup(
+                days=[6, 7],
+                months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                periods=[0, 7, 22],
+                costs=[15.74, 16.93, 15.74],
+            ),
+        ]
+        assert tariff_details.tariff.cost_at(datetime) == expected

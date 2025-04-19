@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Generator, Sequence
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from custom_components.combined_energy.client import Client
 from custom_components.combined_energy.models import (
     Device,
     Installation,
-    Readings,
     ReadingsDevices,
 )
 
@@ -23,6 +23,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    CURRENCY_DOLLAR,
     PERCENTAGE,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -35,7 +36,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
-from .coordinator import CombinedEnergyCoordinator, CombinedEnergyReadingsCoordinator
+from .coordinator import (
+    CombinedEnergyCoordinator,
+    CombinedEnergyReadingsCoordinator,
+    CombinedEnergyTariffDetailsCoordinator,
+)
 
 # Common sensors for all consumer devices
 SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
@@ -376,6 +381,27 @@ COMBINER_DEVICE = Device(
     category="",
 )
 
+SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
+    SensorEntityDescription(
+        key="daily_fee",
+        translation_key="tariff_details_daily_fee",
+        icon="mdi:cash-sync",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=CURRENCY_DOLLAR,
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+    ),
+    SensorEntityDescription(
+        key="feed_in_cost",
+        translation_key="tariff_details_feed_in_cost",
+        icon="mdi:cash-plus",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=CURRENCY_DOLLAR,
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+    ),
+]
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -391,30 +417,60 @@ async def async_setup_entry(
     installation = await client.installation()
 
     LOGGER.info("Setting up Combined Energy sensors")
-    async_add_entities(_generate_readings_sensors(installation, coordinator.readings))
+    async_add_entities(_generate_sensors(installation, coordinator))
+
+
+def _generate_sensors(
+    installation: Installation,
+    coordinator: CombinedEnergyCoordinator,
+) -> Generator[SensorEntity]:
+    """Generate sensor entities from installed devices."""
+    yield from _generate_readings_sensors(installation, coordinator.readings)
+    yield from _generate_tariff_details_sensors(
+        installation, coordinator.tariff_details
+    )
 
 
 def _generate_readings_sensors(
     installation: Installation,
-    coordinator: CombinedEnergyReadingsCoordinator,
+    coordinator: CombinedEnergyTariffDetailsCoordinator,
 ) -> Generator[CombinedEnergyReadingsSensor]:
     """Generate sensor entities from installed devices."""
 
     # Generate sensors from descriptions for the combiner device
-    for entity_description in COMBINER_SENSOR_DESCRIPTIONS:
-        if sensor_type := SENSOR_TYPE_MAP.get(
-            entity_description.device_class, GenericSensor
-        ):
-            yield sensor_type(COMBINER_DEVICE, entity_description, coordinator)
+    for description in COMBINER_SENSOR_DESCRIPTIONS:
+        sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
+        yield sensor_type(
+            installation=installation,
+            device=COMBINER_DEVICE,
+            description=description,
+            coordinator=coordinator,
+        )
 
     for device in installation.devices:
-        if entity_descriptions := SENSOR_DESCRIPTIONS.get(device.device_type):
-            # Generate sensors from descriptions for the current device type
-            for entity_description in entity_descriptions:
-                if sensor_type := SENSOR_TYPE_MAP.get(
-                    entity_description.device_class, GenericSensor
-                ):
-                    yield sensor_type(device, entity_description, coordinator)
+        descriptions = SENSOR_DESCRIPTIONS.get(device.device_type, [])
+        # Generate sensors from descriptions for the current device type
+        for description in descriptions:
+            sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
+            yield sensor_type(
+                installation=installation,
+                device=device,
+                description=description,
+                coordinator=coordinator,
+            )
+
+
+def _generate_tariff_details_sensors(
+    installation: Installation,
+    coordinator: CombinedEnergyTariffDetailsCoordinator,
+) -> Generator[CombinedEnergyTariffSensor]:
+    """Generate sensor entities from tariff details."""
+    if coordinator.data is not None:
+        yield PriceSensor(installation=installation, coordinator=coordinator)
+    for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS:
+        yield CombinedEnergyTariffSensor(
+            installation=installation, coordinator=coordinator, description=description
+        )
 
 
 class CombinedEnergyReadingsSensor(
@@ -427,6 +483,7 @@ class CombinedEnergyReadingsSensor(
 
     def __init__(
         self,
+        installation: Installation,
         device: Device,
         description: SensorEntityDescription,
         coordinator: CombinedEnergyReadingsCoordinator,
@@ -438,7 +495,7 @@ class CombinedEnergyReadingsSensor(
         self.device_type = device.device_type
         self.entity_description = description
 
-        identifier = f"install_{coordinator.data.installation_id}-device_{device.id}"
+        identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, identifier)},
@@ -552,3 +609,80 @@ SENSOR_TYPE_MAP: dict[
     SensorDeviceClass.WATER: WaterVolumeSensor,
     SensorDeviceClass.POWER_FACTOR: PowerFactorSensor,
 }
+
+
+class CombinedEnergyTariffSensor(
+    CoordinatorEntity[CombinedEnergyTariffDetailsCoordinator], SensorEntity
+):
+    """Representation of a Combined Energy API tariff sensor."""
+
+    entity_description: SensorEntityDescription
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        installation: Installation,
+        coordinator: CombinedEnergyReadingsCoordinator,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialise Tariff Sensor."""
+        super().__init__(coordinator)
+        identifier = f"install_{installation.id}-tariff-details"
+        self.entity_description = description
+        self._attr_unique_id = f"{identifier}-{description.key}"
+        if data := self.coordinator.data:
+            self._attr_device_info = DeviceInfo(
+                identifiers={
+                    (DOMAIN, identifier),
+                    (DOMAIN, f"tariff_plan_{data.tariff.plan_id}"),
+                },
+                manufacturer=data.tariff.retailer_name,
+                name=data.tariff.plan_name,
+                serial_number=str(data.tariff.plan_id),
+                created_at=data.tariff.as_at.isoformat(),
+                modified_at=data.tariff.updated.isoformat(),
+            )
+        else:
+            self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, identifier)})
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the value reported by the sensor."""
+        if data := self.coordinator.data:
+            return getattr(data.tariff, self.entity_description.key) / 100.0
+        return None
+
+
+class PriceSensor(CombinedEnergyTariffSensor):
+    """Sensor for group price readings."""
+
+    def __init__(
+        self,
+        installation: Installation,
+        coordinator: CombinedEnergyTariffDetailsCoordinator,
+    ) -> None:
+        """Initialise Group Price Sensor."""
+        super().__init__(
+            installation=installation,
+            coordinator=coordinator,
+            description=SensorEntityDescription(
+                key="cost",
+                translation_key="tariff_details_cost",
+                icon="mdi:cash-minus",
+                state_class=SensorStateClass.MEASUREMENT,
+                native_unit_of_measurement=CURRENCY_DOLLAR,
+                device_class=SensorDeviceClass.MONETARY,
+                suggested_display_precision=2,
+            ),
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the value reported by the sensor."""
+        if self.coordinator.data is None:
+            return None
+        tz = ZoneInfo(self.hass.config.time_zone)
+        now = datetime.now(tz=tz)
+        if (cost := self.coordinator.data.tariff.cost_at(now)) is not None:
+            return cost / 100.0
+        return None
