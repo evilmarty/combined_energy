@@ -1,7 +1,8 @@
 """API Schema model."""
 
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from itertools import pairwise
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -309,6 +310,17 @@ class TariffGroup(BaseModel):
     periods: list[int]
     costs: list[float]
 
+    def cost_at(self, dt: datetime) -> float | None:
+        """Get the cost at a specific datetime."""
+        if dt.month in self.months and dt.weekday() + 1 in self.days:
+            ranges = pairwise(self.periods)
+            for i, range_ in enumerate(ranges):
+                if range_[0] <= dt.hour < range_[1]:
+                    return self.costs[i]
+            # Handle the last period
+            return self.costs[-1]
+        return None
+
 
 class Tariff(BaseModel):
     """Details of a tariff."""
@@ -327,6 +339,13 @@ class Tariff(BaseModel):
     updated: datetime
 
     groups: list[TariffGroup]
+
+    def cost_at(self, dt: datetime) -> float | None:
+        """Get the cost at a specific datetime."""
+        for group in self.groups:
+            if (cost := group.cost_at(dt)) is not None:
+                return cost
+        return None
 
 
 class TariffDetails(BaseModel):

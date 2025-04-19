@@ -121,6 +121,15 @@
       },
       "combiner_energy_correction": {
         "name": "Energy Correction"
+      },
+      "tariff_details_daily_fee": {
+        "name": "Daily Fee"
+      },
+      "tariff_details_feed_in_cost": {
+        "name": "Feed In Cost"
+      },
+      "tariff_details_cost": {
+        "name": "Cost"
       }
     }
   }

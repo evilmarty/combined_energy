@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 from logging import Logger
 
 from custom_components.combined_energy.client import Client
@@ -12,11 +11,7 @@ from custom_components.combined_energy.models import LogSession, Readings, Tarif
 from homeassistant.components.sensor import UndefinedType
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import (
-    UNDEFINED,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
+from homeassistant.helpers.update_coordinator import UNDEFINED, DataUpdateCoordinator
 
 from .const import (
     LOG_SESSION_REFRESH_DELAY,
