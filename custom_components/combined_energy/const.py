@@ -8,6 +8,8 @@ DOMAIN: Final[str] = "combined_energy"
 
 LOGGER = logging.getLogger(__package__)
 
+CURRENCY_AUD = "AUD"
+
 # Data for Combined Energy requests.
 DATA_API_CLIENT: Final[str] = "api_client"
 DATA_COORDINATOR: Final[str] = "coordinator"
