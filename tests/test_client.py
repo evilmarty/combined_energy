@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from aiohttp import web
 from custom_components.combined_energy.client import Client, ClientAuthError
+from custom_components.combined_energy.models import Login
 from freezegun import freeze_time
 import pytest
 
@@ -32,6 +33,7 @@ class TestClient:
 
     @pytest.fixture
     async def client(self, aiohttp_raw_server, mock_handler):
+        """Create a client fixture."""
         server = await aiohttp_raw_server(mock_handler)
         url = f"{server.scheme}://{server.host}:{server.port}"
         client = Client(mobile_or_email="123456789", password="password")
@@ -39,6 +41,20 @@ class TestClient:
         client.base_url_data_access = url
         client.base_url_mqtt_access = url
         return client
+
+    @pytest.mark.parametrize(
+        ("login", "expected"),
+        [
+            (None, False),
+            (Login(status="ok", jwt="xxxx", expireMins=10), True),
+            (Login(status="ok", jwt="xxxx", expireMins=-10), False),
+        ],
+    )
+    def test_logged_in(self, client: Client, login: Login, expected: bool):
+        """Test the logged_in property."""
+
+        client._login = login  # noqa: SLF001
+        assert client.logged_in is expected
 
     async def test_login__ok(self, client: Client):
         """Test the login method."""

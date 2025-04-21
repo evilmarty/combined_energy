@@ -117,6 +117,17 @@ class Client:
             if self.auto_close:
                 await self.close()
 
+    async def _make_request_with_reauth(self, *args, **kwargs) -> dict[str, Any]:
+        """Make a request to the API with re-authentication."""
+        try:
+            return await self._make_request(*args, **kwargs)
+        except ClientResponseError as err:
+            if err.status == 401:
+                self._login = None
+                await self.login()
+                return await self._make_request(*args, **kwargs)
+            raise
+
     async def close(self) -> None:
         """Close the session."""
         if self.session:
@@ -126,19 +137,12 @@ class Client:
     @property
     def logged_in(self) -> bool:
         """Check if the client is logged in."""
-        return self._login is not None and not self._login.expired
+        return not getattr(self._login, "expired", True)
 
     async def login(self) -> Login:
         """Login to the API and caches the result, re-authing only if expired."""
-        login = await self._perform_login()
-        if login.expired:
-            self._perform_login.cache_clear()
-            login = await self._perform_login()
-        return login
-
-    @async_cache
-    async def _perform_login(self) -> Login:
-        """Perform the actual login."""
+        if self.logged_in:
+            return self._login
         data = await self._make_request(
             f"{self.base_url_user_access}/user/Login",
             method=METH_POST,
@@ -157,7 +161,7 @@ class Client:
     async def installation(self) -> Installation:
         """Get installation for account."""
         login = await self.login()
-        data = await self._make_request(
+        data = await self._make_request_with_reauth(
             f"{self.base_url_data_access}/dataAccess/installation",
             method=METH_GET,
             params={"jwt": login.jwt},
@@ -168,7 +172,7 @@ class Client:
         """Start a log session."""
         login = await self.login()
         installation = await self.installation()
-        data = await self._make_request(
+        data = await self._make_request_with_reauth(
             f"{self.base_url_mqtt_access}/mqtt2/user/LogSessionStart",
             method=METH_POST,
             data={
@@ -195,7 +199,7 @@ class Client:
             )
         if range_start is None:
             range_start = range_end - timedelta(seconds=increment)
-        data = await self._make_request(
+        data = await self._make_request_with_reauth(
             f"{self.base_url_data_access}/dataAccess/readings",
             params={
                 "jwt": login.jwt,
@@ -217,7 +221,7 @@ class Client:
             "planId": installation.tariff_plan_id,
             "postcode": installation.postcode,
         }
-        data = await self._make_request(
+        data = await self._make_request_with_reauth(
             f"{self.base_url_data_access}/dataAccess/tariff-details",
             params=params,
         )
