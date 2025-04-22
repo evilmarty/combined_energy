@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from logging import Logger
 
 from custom_components.combined_energy.client import Client
@@ -78,6 +79,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         logger: Logger,
         update_interval: int,
         config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
+        log_session_reset_count: int = 0,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
@@ -88,8 +90,19 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             update_interval=update_interval,
         )
         self.client = client
+        self._last_range_end = None
+        self._empty = deque(
+            [False] * log_session_reset_count, maxlen=log_session_reset_count
+        )
 
     async def _async_update_data(self) -> Readings:
-        """Fetch data from the API."""
-        range_start = getattr(self.data, "range_end", None)
-        return await self.client.readings(range_start=range_start)
+        """Fetch readings from the API."""
+        # This is a workaround for the fact that the API does not return readings but won't indicate the fact neither.
+        # Source: https://github.com/timsavage/combined-energy-api/blob/develop/src/combined_energy/helpers.py#L46
+        if all(self._empty):
+            await self.client.start_log_session()
+        range_start = self._last_range_end
+        readings = await self.client.readings(range_start=range_start)
+        self._last_range_end = readings.range_end
+        self._empty.append(readings.range_count == 0)
+        return readings
