@@ -32,15 +32,3 @@ After you have installed the custom component (see above):
 3. Search for Combined Energy. (If you don't see it, try refreshing your browser page to reload the cache.)
 4. Provide the same credentials that are used for https://athome.combined.energy (see [How to get my Installation ID]).
 5. Click Submit so add the integration.
-
-### How to get my Installation ID
-
-Obtaining this value will require a little digging. All strategies require you to be logged into https://athome.combined.energy using your web browser on a PC. Ensure you have access to Development Tools or Development Mode in your browser. Search the web on instructions on how to do this for your web browser.
-
-#### Strategy 1
-
-This is the easiest way to get the installation ID. Upon logging in simply open your browser's Development Tools and view the Web/Javascript Console. You may have to refresh the browser after the Console is present. In the output there should be something along the lines of `installation received - XXXX`, where `XXXX` is your installation ID.
-
-#### Strategy 2
-
-Open your browser's Development Tools to the Network screen. Ensure results are filtered by "XHR/Fetch" or the equivalent. Begin navigating the site until you see a request to `/data-service/dataAccess/installation`. Once such a request has been made inspect (or preview) its response and look for the value for the property `installationId`.
