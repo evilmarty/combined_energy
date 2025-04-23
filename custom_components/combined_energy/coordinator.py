@@ -79,7 +79,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         logger: Logger,
         update_interval: int,
         config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
-        log_session_reset_count: int = 0,
+        log_session_reset_count: int = 3,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
