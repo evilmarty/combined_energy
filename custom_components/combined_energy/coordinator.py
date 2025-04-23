@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from datetime import datetime
 from logging import Logger
 
 from custom_components.combined_energy.client import Client
@@ -101,8 +102,11 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         # Source: https://github.com/timsavage/combined-energy-api/blob/develop/src/combined_energy/helpers.py#L46
         if all(self._empty):
             await self.client.start_log_session()
-        range_start = self._last_range_end
-        readings = await self.client.readings(range_start=range_start)
-        self._last_range_end = readings.range_end
+        readings = await self.client.readings(
+            range_start=self._last_range_end, range_end=datetime.now()
+        )
+        is_empty = readings.range_count == 0
         self._empty.append(readings.range_count == 0)
+        if not is_empty:
+            self._last_range_end = readings.range_end
         return readings

@@ -530,7 +530,7 @@ class CombinedEnergyReadingsSensor(
         return self._raw_value is not None
 
     @abstractmethod
-    def _to_native_value(self, raw_value: Any) -> int | float | None:
+    def _to_native_value(self, raw_value: Any) -> int | float:
         """Convert non-none raw value into usable sensor value."""
 
     def _aggregate_value(self, raw_values: Sequence[Any]) -> int | float | None:
@@ -542,7 +542,7 @@ class CombinedEnergyReadingsSensor(
         """Return the state of the sensor."""
         raw_value = self._raw_value
         if isinstance(raw_value, Sequence):
-            raw_value = self._aggregate_value(raw_value)
+            return self._aggregate_value(raw_value)
         if raw_value is not None:
             return self._to_native_value(raw_value)
         return None
@@ -567,7 +567,9 @@ class EnergySensor(CombinedEnergyReadingsSensor):
         return None
 
     def _aggregate_value(self, raw_values: Sequence[Any]) -> int | float | None:
-        return sum(rv for rv in raw_values if rv is not None)
+        if all(rv is None for rv in raw_values):
+            return None
+        return sum(self._to_native_value(rv) for rv in raw_values if rv is not None)
 
     def _to_native_value(self, raw_value: Any) -> float:
         """Convert non-none raw value into usable sensor value."""
@@ -594,9 +596,9 @@ class PowerFactorSensor(CombinedEnergyReadingsSensor):
 class WaterVolumeSensor(CombinedEnergyReadingsSensor):
     """Sensor for water volume readings."""
 
-    def _to_native_value(self, raw_value: Any) -> int:
+    def _to_native_value(self, raw_value: Any) -> float:
         """Convert non-none raw value into usable sensor value."""
-        return int(raw_value)
+        return float(raw_value)
 
 
 # Map of common device classes to specific sensor types
