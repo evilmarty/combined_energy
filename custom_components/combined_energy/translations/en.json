@@ -41,6 +41,9 @@
       "water_heater_available_energy": {
         "name": "Hot Water Available"
       },
+      "water_heater_available_percentage": {
+        "name": "Hot Water Percentage"
+      },
       "water_heater_max_energy": {
         "name": "Hot Water Max"
       },
