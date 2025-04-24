@@ -1,7 +1,7 @@
 """API Schema model."""
 
 from datetime import UTC, datetime, timedelta
-from itertools import pairwise
+from itertools import pairwise, zip_longest
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -267,6 +267,16 @@ class DeviceReadingsWaterHeater(DeviceReadingsGenericConsumer):
     temp_sensor4: None | list[None | float] = Field(alias="s4")
     temp_sensor5: None | list[None | float] = Field(alias="s5")
     temp_sensor6: None | list[None | float] = Field(alias="s6")
+
+    @property
+    def available_percentage(self) -> None | list[None | float]:
+        """Get the available percentage of the water heater."""
+        if self.available_energy is None or self.max_energy is None:
+            return None
+        return [
+            ((a / m) * 100 if m > 0 else 0) if m is not None and a is not None else None
+            for a, m in zip_longest(self.available_energy, self.max_energy)
+        ]
 
 
 class DeviceReadingsEnergyBalance(DeviceReadingsGenericConsumer):

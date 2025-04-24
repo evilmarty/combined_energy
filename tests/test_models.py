@@ -536,3 +536,60 @@ class TestTariffDetails:
             ),
         ]
         assert tariff_details.tariff.cost_at(datetime) == expected
+
+
+class TestDeviceReadingsWaterHeater:
+    """Test DeviceReadingsWaterHeater model."""
+
+    @pytest.fixture
+    def device_readings_water_heater(self):
+        """Fixture for DeviceReadingsWaterHeater model."""
+        return DeviceReadingsWaterHeater(
+            deviceId=3,
+            deviceType="WATER_HEATER",
+            rangeStart=datetime(2025, 4, 15, 20, 27, 50, tzinfo=UTC),
+            rangeEnd=datetime(2025, 4, 15, 20, 27, 55, tzinfo=UTC),
+            timestamp=[datetime(2025, 4, 15, 20, 27, 55, tzinfo=UTC)],
+            sampleSecs=[5],
+            operationStatus=["CONNECTED_ACTIVE"],
+            operationMessage=[None],
+            energyConsumed=[0.71111],
+            energyConsumedSolar=[0.71111],
+            energyConsumedBattery=[0],
+            energyConsumedGrid=[0],
+            availableEnergy=[426],
+            maxEnergy=[585],
+            s1=[42.6],
+            s2=[61.52],
+            s3=[69.7],
+            s4=[71.2],
+            s5=[71.3],
+            s6=[71.1],
+        )
+
+    @pytest.mark.parametrize(
+        ("available_energy", "max_energy", "expected"),
+        [
+            ([426, 123], [585, 585], pytest.approx([72.8, 21.0], rel=1e-2)),
+            (None, [585], None),
+            ([426], None, None),
+            ([None], [585], [None]),
+            ([426], [None], [None]),
+        ],
+    )
+    def test_available_percentage(
+        self,
+        device_readings_water_heater: DeviceReadingsWaterHeater,
+        available_energy,
+        max_energy,
+        expected,
+    ):
+        """Test available_percentage method."""
+        device = DeviceReadingsWaterHeater(
+            **device_readings_water_heater.model_dump(
+                exclude={"available_energy", "max_energy"}, by_alias=True
+            ),
+            availableEnergy=available_energy,
+            maxEnergy=max_energy,
+        )
+        assert device.available_percentage == expected
