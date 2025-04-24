@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Generator, Sequence
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -41,9 +41,23 @@ from .coordinator import (
     CombinedEnergyTariffDetailsCoordinator,
 )
 
+
+class Aggregation(Enum):
+    """Aggregation type for Combined Energy sensors."""
+
+    SUM = "sum"
+    LATEST = "latest"
+
+
+class CombinedEnergySensorDescription(SensorEntityDescription, frozen_or_thawed=True):
+    """Describes Combined Energy sensor entity."""
+
+    aggregation: Aggregation = Aggregation.LATEST
+
+
 # Common sensors for all consumer devices
 SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed",
         translation_key="energy_consumed",
         state_class=SensorStateClass.TOTAL,
@@ -51,7 +65,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_solar",
         translation_key="energy_consumed_solar",
         icon="mdi:solar-power",
@@ -60,8 +74,9 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_battery",
         translation_key="energy_consumed_battery",
         icon="mdi:home-battery",
@@ -70,8 +85,9 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_grid",
         translation_key="energy_consumed_grid",
         icon="mdi:transmission-tower",
@@ -80,11 +96,12 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
 ]
 SENSOR_DESCRIPTIONS = {
     "SOLAR_PV": [
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="energy_supplied",
             translation_key="solar_pv_energy_supplied",
             icon="mdi:solar-power",
@@ -92,19 +109,26 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
+            aggregation=Aggregation.SUM,
         ),
     ],
     "WATER_HEATER": [
         *SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="available_energy",
             translation_key="water_heater_available_energy",
-            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfVolume.LITERS,
             device_class=SensorDeviceClass.WATER,
             suggested_display_precision=2,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
+            key="available_percentage",
+            translation_key="water_heater_available_percentage",
+            icon="mdi:water-percent",
+            native_unit_of_measurement=PERCENTAGE,
+            suggested_display_precision=0,
+        ),
+        CombinedEnergySensorDescription(
             key="max_energy",
             translation_key="water_heater_max_energy",
             state_class=SensorStateClass.TOTAL,
@@ -112,7 +136,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.WATER,
             suggested_display_precision=2,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor1",
             translation_key="water_heater_temp_sensor1",
             icon="mdi:thermometer-water",
@@ -122,7 +146,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor2",
             translation_key="water_heater_temp_sensor2",
             icon="mdi:thermometer-water",
@@ -132,7 +156,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor3",
             translation_key="water_heater_temp_sensor3",
             icon="mdi:thermometer-water",
@@ -142,7 +166,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor4",
             translation_key="water_heater_temp_sensor4",
             icon="mdi:thermometer-water",
@@ -152,7 +176,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor5",
             translation_key="water_heater_temp_sensor5",
             icon="mdi:thermometer-water",
@@ -162,7 +186,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="temp_sensor6",
             translation_key="water_heater_temp_sensor6",
             icon="mdi:thermometer-water",
@@ -174,7 +198,7 @@ SENSOR_DESCRIPTIONS = {
         ),
     ],
     "GRID_METER": [
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="energy_supplied",
             translation_key="grid_meter_energy_supplied",
             icon="mdi:transmission-tower-export",
@@ -182,8 +206,9 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
+            aggregation=Aggregation.SUM,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="energy_consumed",
             translation_key="grid_meter_energy_consumed",
             icon="mdi:transmission-tower-import",
@@ -191,8 +216,9 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
+            aggregation=Aggregation.SUM,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="energy_consumed_solar",
             translation_key="grid_meter_energy_consumed_solar",
             icon="mdi:solar-power",
@@ -201,8 +227,9 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            aggregation=Aggregation.SUM,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="energy_consumed_battery",
             translation_key="grid_meter_energy_consumed_battery",
             icon="mdi:home-battery",
@@ -211,8 +238,9 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            aggregation=Aggregation.SUM,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="power_factor_a",
             translation_key="grid_meter_power_factor_a",
             state_class=SensorStateClass.MEASUREMENT,
@@ -220,7 +248,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER_FACTOR,
             suggested_display_precision=1,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="power_factor_b",
             translation_key="grid_meter_power_factor_b",
             state_class=SensorStateClass.MEASUREMENT,
@@ -229,7 +257,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=1,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="power_factor_c",
             translation_key="grid_meter_power_factor_c",
             state_class=SensorStateClass.MEASUREMENT,
@@ -238,7 +266,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=1,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="voltage_a",
             translation_key="grid_meter_voltage_a",
             state_class=SensorStateClass.MEASUREMENT,
@@ -246,7 +274,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             device_class=SensorDeviceClass.VOLTAGE,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="voltage_b",
             translation_key="grid_meter_voltage_b",
             state_class=SensorStateClass.MEASUREMENT,
@@ -255,7 +283,7 @@ SENSOR_DESCRIPTIONS = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
-        SensorEntityDescription(
+        CombinedEnergySensorDescription(
             key="voltage_c",
             translation_key="grid_meter_voltage_c",
             state_class=SensorStateClass.MEASUREMENT,
@@ -271,15 +299,16 @@ SENSOR_DESCRIPTIONS = {
 
 COMBINER_SENSOR_DESCRIPTIONS = [
     *SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_supplied",
         translation_key="combiner_energy_supplied",
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_supplied_solar",
         translation_key="combiner_energy_supplied_solar",
         icon="mdi:solar-power",
@@ -288,8 +317,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_supplied_battery",
         translation_key="combiner_energy_supplied_battery",
         icon="mdi:home-battery",
@@ -298,8 +328,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_supplied_grid",
         translation_key="combiner_energy_supplied_grid",
         icon="mdi:transmission-tower",
@@ -308,8 +339,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_other",
         translation_key="combiner_energy_consumed_other",
         state_class=SensorStateClass.TOTAL,
@@ -317,8 +349,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_other_solar",
         translation_key="combiner_energy_consumed_other_solar",
         icon="mdi:solar-power",
@@ -327,8 +360,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_other_battery",
         translation_key="combiner_energy_consumed_other_battery",
         icon="mdi:home-battery",
@@ -337,8 +371,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_consumed_other_grid",
         translation_key="combiner_energy_consumed_other_grid",
         icon="mdi:transmission-tower",
@@ -347,8 +382,9 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="energy_correction",
         translation_key="combiner_energy_correction",
         icon="mdi:transmission-tower",
@@ -357,6 +393,7 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        aggregation=Aggregation.SUM,
     ),
 ]
 
@@ -381,7 +418,7 @@ COMBINER_DEVICE = Device(
 )
 
 SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="daily_fee",
         translation_key="tariff_details_daily_fee",
         icon="mdi:cash-sync",
@@ -390,7 +427,7 @@ SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    CombinedEnergySensorDescription(
         key="feed_in_cost",
         translation_key="tariff_details_feed_in_cost",
         icon="mdi:cash-plus",
@@ -477,7 +514,7 @@ class CombinedEnergyReadingsSensor(
 ):
     """Representation of a Combined Energy API reading energy sensor."""
 
-    entity_description: SensorEntityDescription
+    entity_description: CombinedEnergySensorDescription
     _attr_has_entity_name = True
 
     def __init__(
@@ -527,78 +564,72 @@ class CombinedEnergyReadingsSensor(
     @property
     def available(self) -> bool:
         """Indicate if the entity is available."""
+        if (readings_device := self.readings_device) and hasattr(
+            readings_device, "operation_status"
+        ):
+            return readings_device.operation_status[-1] == "CONNECTED_ACTIVE"
         return self._raw_value is not None
 
-    @abstractmethod
-    def _to_native_value(self, raw_value: Any) -> int | float:
+    def _to_native_value(self, raw_value: Any) -> float | None:
         """Convert non-none raw value into usable sensor value."""
+        return float(raw_value)
 
-    def _aggregate_value(self, raw_values: Sequence[Any]) -> int | float | None:
-        """Convert non-none raw value into usable sensor value."""
-        return raw_values[-1]
+    def _aggregate_sum(self, raw_values: Sequence[Any]) -> float | None:
+        """Sum all non-none raw values."""
+        if all(rv is None for rv in raw_values):
+            return None
+        return sum(self._to_native_value(rv) for rv in raw_values if rv is not None)
+
+    def _aggregate_latest(self, raw_values: Sequence[Any]) -> float | None:
+        """Return the last non-none raw value."""
+        latest = raw_values[-1]
+        return self._to_native_value(latest) if latest is not None else None
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Last time the data was reset."""
+        if self.entity_description.state_class != SensorStateClass.TOTAL:
+            return None
+        readings_device = self.readings_device
+        if readings_device is None:
+            return None
+        if self.entity_description.aggregation == Aggregation.SUM:
+            return readings_device.range_start
+        return readings_device.range_end
 
     @property
     def native_value(self) -> int | float | None:
         """Return the state of the sensor."""
         raw_value = self._raw_value
+        if raw_value is None:
+            return None
         if isinstance(raw_value, Sequence):
-            return self._aggregate_value(raw_value)
-        if raw_value is not None:
-            return self._to_native_value(raw_value)
-        return None
+            match self.entity_description.aggregation:
+                case Aggregation.SUM:
+                    return self._aggregate_sum(raw_value)
+                case Aggregation.LATEST:
+                    return self._aggregate_latest(raw_value)
+        return self._to_native_value(raw_value)
 
 
 class GenericSensor(CombinedEnergyReadingsSensor):
     """Sensor that returns the last value of a sequence of readings."""
 
-    def _to_native_value(self, raw_value: Any) -> float:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
-
 
 class EnergySensor(CombinedEnergyReadingsSensor):
     """Sensor for energy readings."""
-
-    @property
-    def last_reset(self) -> datetime | None:
-        """Last time the data was reset."""
-        if readings_device := self.readings_device:
-            return readings_device.range_start
-        return None
-
-    def _aggregate_value(self, raw_values: Sequence[Any]) -> int | float | None:
-        if all(rv is None for rv in raw_values):
-            return None
-        return sum(self._to_native_value(rv) for rv in raw_values if rv is not None)
-
-    def _to_native_value(self, raw_value: Any) -> float:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
 
 
 class PowerSensor(CombinedEnergyReadingsSensor):
     """Sensor for power readings."""
 
-    def _to_native_value(self, raw_value: Any) -> float:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
-
 
 class PowerFactorSensor(CombinedEnergyReadingsSensor):
     """Sensor for power factor readings."""
 
-    def _to_native_value(self, raw_value: Any) -> float:
-        """Convert non-none raw value into usable sensor value."""
-        # The API expresses the power factor as a fraction convert to %
-        return float(raw_value) * 100
-
 
 class WaterVolumeSensor(CombinedEnergyReadingsSensor):
     """Sensor for water volume readings."""
-
-    def _to_native_value(self, raw_value: Any) -> float:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
 
 
 # Map of common device classes to specific sensor types
@@ -624,7 +655,7 @@ class CombinedEnergyTariffSensor(
         self,
         installation: Installation,
         coordinator: CombinedEnergyReadingsCoordinator,
-        description: SensorEntityDescription,
+        description: CombinedEnergySensorDescription,
     ) -> None:
         """Initialise Tariff Sensor."""
         super().__init__(coordinator)
