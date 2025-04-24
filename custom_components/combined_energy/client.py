@@ -152,7 +152,7 @@ class Client:
                 "store": False,
             },
         )
-        if data.get("status") != "ok":
+        if not data or data.get("status") != "ok":
             raise ClientAuthError(data.get("error", "Login failed"))
         self._login = Login.model_validate(data)
         return self._login
@@ -168,7 +168,17 @@ class Client:
         )
         return Installation.model_validate(data)
 
-    async def start_log_session(self) -> LogSession:
+    async def start_log_session(self, retry_auth=True) -> LogSession:
+        """Start a log session."""
+        try:
+            return await self._start_log_session()
+        except ClientAuthError:
+            if retry_auth:
+                self._login = None
+                return await self.start_log_session(retry_auth=False)
+            raise
+
+    async def _start_log_session(self) -> LogSession:
         """Start a log session."""
         login = await self.login()
         installation = await self.installation()
@@ -180,6 +190,8 @@ class Client:
                 "jwt": login.jwt,
             },
         )
+        if not data or data.get("status") != "ok":
+            raise ClientAuthError(data.get("error", "Log session failed"))
         return LogSession.model_validate(data)
 
     async def readings(
