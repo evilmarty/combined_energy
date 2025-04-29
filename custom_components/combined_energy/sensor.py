@@ -565,11 +565,10 @@ class CombinedEnergyReadingsSensor(
     @property
     def available(self) -> bool:
         """Indicate if the entity is available."""
-        if (readings_device := self.readings_device) and hasattr(
-            readings_device, "operation_status"
-        ):
-            return readings_device.operation_status[-1] == "CONNECTED_ACTIVE"
-        return self._raw_value is not None
+        raw_value = self._raw_value
+        if isinstance(raw_value, Sequence):
+            return any(rv is not None for rv in raw_value)
+        return raw_value is not None
 
     def _to_native_value(self, raw_value: Any) -> float | None:
         """Convert non-none raw value into usable sensor value."""
