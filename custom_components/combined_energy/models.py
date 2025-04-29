@@ -345,7 +345,7 @@ class Tariff(BaseModel):
     source: str
     daily_fee: float = Field(alias="dailyFee")
     feed_in_cost: float = Field(alias="feedInCost")
-    as_at: datetime = Field(alias="asAt")
+    as_at: datetime | None = Field(default=None, alias="asAt")
     updated: datetime
 
     groups: list[TariffGroup]
