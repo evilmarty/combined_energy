@@ -64,6 +64,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
+        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_solar",
