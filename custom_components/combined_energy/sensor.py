@@ -663,6 +663,7 @@ class CombinedEnergyTariffSensor(
         self.entity_description = description
         self._attr_unique_id = f"{identifier}-{description.key}"
         if data := self.coordinator.data:
+            created_at = data.tariff.as_at.isoformat() if data.tariff.as_at else None
             self._attr_device_info = DeviceInfo(
                 identifiers={
                     (DOMAIN, identifier),
@@ -671,7 +672,7 @@ class CombinedEnergyTariffSensor(
                 manufacturer=data.tariff.retailer_name,
                 name=data.tariff.plan_name,
                 serial_number=str(data.tariff.plan_id),
-                created_at=data.tariff.as_at.isoformat(),
+                created_at=created_at,
                 modified_at=data.tariff.updated.isoformat(),
             )
         else:
