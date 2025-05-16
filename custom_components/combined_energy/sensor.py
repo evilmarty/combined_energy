@@ -582,8 +582,10 @@ class CombinedEnergyReadingsSensor(
 
     def _aggregate_latest(self, raw_values: Sequence[Any]) -> float | None:
         """Return the last non-none raw value."""
-        latest = raw_values[-1]
-        return self._to_native_value(latest) if latest is not None else None
+        for raw_value in reversed(raw_values):
+            if raw_value is not None:
+                return self._to_native_value(raw_value)
+        return None
 
     @property
     def last_reset(self) -> datetime | None:
