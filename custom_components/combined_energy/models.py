@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise, zip_longest
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -285,14 +285,17 @@ class DeviceReadingsEnergyBalance(DeviceReadingsGenericConsumer):
     device_type: Literal["ENERGY_BALANCE"] = Field(alias="deviceType")
 
 
-ReadingsDevices = (
-    DeviceReadingsCombiner
-    | DeviceReadingsSolarPV
-    | DeviceReadingsGridMeter
-    | DeviceReadingsGenericConsumer
-    | DeviceReadingsWaterHeater
-    | DeviceReadingsEnergyBalance
-)
+ReadingsDevices = Annotated[
+    (
+        DeviceReadingsCombiner
+        | DeviceReadingsSolarPV
+        | DeviceReadingsGridMeter
+        | DeviceReadingsGenericConsumer
+        | DeviceReadingsWaterHeater
+        | DeviceReadingsEnergyBalance
+    ),
+    Field(discriminator="device_type"),
+]
 
 
 class Readings(BaseModel):
@@ -305,11 +308,7 @@ class Readings(BaseModel):
     installation_id: int = Field(alias="installationId")
     server_time: datetime = Field(alias="serverTime")
 
-    devices: list[ReadingsDevices] = Field(
-        json_schema_extra={
-            "descriminator": "device_type",
-        },
-    )
+    devices: list[ReadingsDevices]
 
 
 class TariffGroup(BaseModel):
