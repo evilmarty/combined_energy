@@ -180,18 +180,6 @@ class DeviceReadingsCombiner(CommonDeviceReadings):
         alias="energySuppliedBattery"
     )
     energy_supplied_grid: None | list[None | float] = Field(alias="energySuppliedGrid")
-    energy_consumed_other: None | list[None | float] = Field(
-        alias="energyConsumedOther"
-    )
-    energy_consumed_other_solar: None | list[None | float] = Field(
-        alias="energyConsumedOtherSolar"
-    )
-    energy_consumed_other_battery: None | list[None | float] = Field(
-        alias="energyConsumedOtherBattery"
-    )
-    energy_consumed_other_grid: None | list[None | float] = Field(
-        alias="energyConsumedOtherGrid"
-    )
     energy_consumed: None | list[None | float] = Field(alias="energyConsumed")
     energy_consumed_solar: None | list[None | float] = Field(
         alias="energyConsumedSolar"
