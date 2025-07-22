@@ -70,17 +70,15 @@ class Device(BaseModel):
     ref_name: str = Field(alias="refName")
     name: str = Field(alias="displayName")
     device_type: str = Field(alias="deviceType")
-    manufacturer: None | str = Field(alias="deviceManufacturer")
-    model_name: None | str = Field(alias="deviceModelName")
-    serial_number: None | str = Field(alias="deviceSerialNumber")
-    supplier_device: bool = Field(alias="supplierDevice")
+    manufacturer: None | str = Field(default=None, alias="deviceManufacturer")
+    model_name: None | str = Field(default=None, alias="deviceModelName")
+    serial_number: None | str = Field(default=None, alias="deviceSerialNumber")
     storage_device: bool = Field(alias="storageDevice")
+    supplier_device: bool = Field(default=None, alias="supplierDevice")
     consumer_device: bool = Field(alias="consumerDevice")
     status: str
-    max_power_supply: None | int = Field(alias="maxPowerSupply")
-    max_power_consumption: None | int = Field(alias="maxPowerConsumption")
-    icon_override: None | str = Field(alias="iconOverride")
-    order_override: None | int = Field(alias="orderOverride")
+    max_power_supply: None | int = Field(default=None, alias="maxPowerSupply")
+    max_power_consumption: None | int = Field(default=None, alias="maxPowerConsumption")
     category: str
     assets: list[str] = Field(default_factory=list)
 
@@ -143,7 +141,7 @@ class Customer(BaseModel):
     """Individual customer."""
 
     customer_id: int = Field(alias="customerId")
-    phone: None | str
+    phone: None | str = Field(default=None)
     email: str
     name: str
     primary: bool
@@ -160,11 +158,11 @@ class InstallationCustomers(BaseModel):
 class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""
 
-    device_id: int | None = Field(alias="deviceId", default=None)
-    range_start: datetime | None = Field(alias="rangeStart")
-    range_end: datetime | None = Field(alias="rangeEnd")
+    device_id: int | None = Field(default=None, alias="deviceId")
+    range_start: datetime | None = Field(default=None, alias="rangeStart")
+    range_end: datetime | None = Field(default=None, alias="rangeEnd")
     timestamp: list[datetime]
-    sample_seconds: None | list[int] = Field(alias="sampleSecs")
+    sample_seconds: None | list[int] = Field(default=None, alias="sampleSecs")
 
 
 class DeviceReadingsCombiner(CommonDeviceReadings):
@@ -172,74 +170,112 @@ class DeviceReadingsCombiner(CommonDeviceReadings):
 
     device_type: Literal["COMBINER"] = Field(alias="deviceType")
 
-    energy_supplied: None | list[None | float] = Field(alias="energySupplied")
+    energy_supplied: None | list[None | float] = Field(
+        default=None, alias="energySupplied"
+    )
     energy_supplied_solar: None | list[None | float] = Field(
-        alias="energySuppliedSolar"
+        default=None, alias="energySuppliedSolar"
     )
     energy_supplied_battery: None | list[None | float] = Field(
-        alias="energySuppliedBattery"
+        default=None, alias="energySuppliedBattery"
     )
-    energy_supplied_grid: None | list[None | float] = Field(alias="energySuppliedGrid")
-    energy_consumed: None | list[None | float] = Field(alias="energyConsumed")
+    energy_supplied_grid: None | list[None | float] = Field(
+        default=None, alias="energySuppliedGrid"
+    )
+    energy_consumed: None | list[None | float] = Field(
+        default=None, alias="energyConsumed"
+    )
     energy_consumed_solar: None | list[None | float] = Field(
-        alias="energyConsumedSolar"
+        default=None, alias="energyConsumedSolar"
     )
     energy_consumed_battery: None | list[None | float] = Field(
-        alias="energyConsumedBattery"
+        default=None, alias="energyConsumedBattery"
     )
-    energy_consumed_grid: None | list[None | float] = Field(alias="energyConsumedGrid")
-    energy_correction: None | list[None | float] = Field(alias="energyCorrection")
-    temperature: None | list[None | float]
+    energy_consumed_grid: None | list[None | float] = Field(
+        default=None, alias="energyConsumedGrid"
+    )
+    energy_correction: None | list[None | float] = Field(
+        default=None, alias="energyCorrection"
+    )
+    temperature: None | list[None | float] = Field(default=None)
 
 
 class DeviceReadingsSolarPV(CommonDeviceReadings):
     """Readings for the Solar PV device."""
 
     device_type: Literal["SOLAR_PV"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(alias="operationStatus")
-    operation_message: None | list[None | str] = Field(alias="operationMessage")
+    operation_status: None | list[None | str] = Field(
+        default=None, alias="operationStatus"
+    )
+    operation_message: None | list[None | str] = Field(
+        default=None, alias="operationMessage"
+    )
 
-    energy_supplied: None | list[None | float] = Field(alias="energySupplied")
+    energy_supplied: None | list[None | float] = Field(
+        default=None, alias="energySupplied"
+    )
 
 
 class DeviceReadingsGridMeter(CommonDeviceReadings):
     """Readings for the Grid Meter device."""
 
     device_type: Literal["GRID_METER"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(alias="operationStatus")
-    operation_message: None | list[None | str] = Field(alias="operationMessage")
+    operation_status: None | list[None | str] = Field(
+        default=None, alias="operationStatus"
+    )
+    operation_message: None | list[None | str] = Field(
+        default=None, alias="operationMessage"
+    )
 
-    energy_supplied: None | list[None | float] = Field(alias="energySupplied")
-    energy_consumed: None | list[None | float] = Field(alias="energyConsumed")
+    energy_supplied: None | list[None | float] = Field(
+        default=None, alias="energySupplied"
+    )
+    energy_consumed: None | list[None | float] = Field(
+        default=None, alias="energyConsumed"
+    )
     energy_consumed_solar: None | list[None | float] = Field(
-        alias="energyConsumedSolar"
+        default=None, alias="energyConsumedSolar"
     )
     energy_consumed_battery: None | list[None | float] = Field(
-        alias="energyConsumedBattery"
+        default=None, alias="energyConsumedBattery"
     )
-    power_factor_a: None | list[None | float] = Field(alias="powerFactorA")
-    power_factor_b: None | list[None | float] = Field(alias="powerFactorB")
-    power_factor_c: None | list[None | float] = Field(alias="powerFactorC")
-    voltage_a: None | list[None | float] = Field(alias="voltageA")
-    voltage_b: None | list[None | float] = Field(alias="voltageB")
-    voltage_c: None | list[None | float] = Field(alias="voltageC")
+    power_factor_a: None | list[None | float] = Field(
+        default=None, alias="powerFactorA"
+    )
+    power_factor_b: None | list[None | float] = Field(
+        default=None, alias="powerFactorB"
+    )
+    power_factor_c: None | list[None | float] = Field(
+        default=None, alias="powerFactorC"
+    )
+    voltage_a: None | list[None | float] = Field(default=None, alias="voltageA")
+    voltage_b: None | list[None | float] = Field(default=None, alias="voltageB")
+    voltage_c: None | list[None | float] = Field(default=None, alias="voltageC")
 
 
 class DeviceReadingsGenericConsumer(CommonDeviceReadings):
     """Readings for a Generic consumer device."""
 
     device_type: Literal["GENERIC_CONSUMER"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(alias="operationStatus")
-    operation_message: None | list[None | str] = Field(alias="operationMessage")
+    operation_status: None | list[None | str] = Field(
+        default=None, alias="operationStatus"
+    )
+    operation_message: None | list[None | str] = Field(
+        default=None, alias="operationMessage"
+    )
 
-    energy_consumed: None | list[None | float] = Field(alias="energyConsumed")
+    energy_consumed: None | list[None | float] = Field(
+        default=None, alias="energyConsumed"
+    )
     energy_consumed_solar: None | list[None | float] = Field(
-        alias="energyConsumedSolar"
+        default=None, alias="energyConsumedSolar"
     )
     energy_consumed_battery: None | list[None | float] = Field(
-        alias="energyConsumedBattery"
+        default=None, alias="energyConsumedBattery"
     )
-    energy_consumed_grid: None | list[None | float] = Field(alias="energyConsumedGrid")
+    energy_consumed_grid: None | list[None | float] = Field(
+        default=None, alias="energyConsumedGrid"
+    )
 
 
 class DeviceReadingsWaterHeater(DeviceReadingsGenericConsumer):
@@ -248,13 +284,13 @@ class DeviceReadingsWaterHeater(DeviceReadingsGenericConsumer):
     device_type: Literal["WATER_HEATER"] = Field(alias="deviceType")
 
     available_energy: None | list[None | float] = Field(alias="availableEnergy")
-    max_energy: None | list[None | float] = Field(alias="maxEnergy")
-    temp_sensor1: None | list[None | float] = Field(alias="s1")
-    temp_sensor2: None | list[None | float] = Field(alias="s2")
-    temp_sensor3: None | list[None | float] = Field(alias="s3")
-    temp_sensor4: None | list[None | float] = Field(alias="s4")
-    temp_sensor5: None | list[None | float] = Field(alias="s5")
-    temp_sensor6: None | list[None | float] = Field(alias="s6")
+    max_energy: None | list[None | float] = Field(default=None, alias="maxEnergy")
+    temp_sensor1: None | list[None | float] = Field(default=None, alias="s1")
+    temp_sensor2: None | list[None | float] = Field(default=None, alias="s2")
+    temp_sensor3: None | list[None | float] = Field(default=None, alias="s3")
+    temp_sensor4: None | list[None | float] = Field(default=None, alias="s4")
+    temp_sensor5: None | list[None | float] = Field(default=None, alias="s5")
+    temp_sensor6: None | list[None | float] = Field(default=None, alias="s6")
 
     @property
     def available_percentage(self) -> None | list[None | float]:
