@@ -288,16 +288,26 @@ class DeviceReadingsEnergyBalance(DeviceReadingsGenericConsumer):
     device_type: Literal["ENERGY_BALANCE"] = Field(alias="deviceType")
 
 
+class DeviceReadingsUnknown(BaseModel):
+    """Readings for an unknown device type."""
+
+    device_type: str = Field(alias="deviceType")
+
+
 ReadingsDevices = Annotated[
-    (
-        DeviceReadingsCombiner
-        | DeviceReadingsSolarPV
-        | DeviceReadingsGridMeter
-        | DeviceReadingsGenericConsumer
-        | DeviceReadingsWaterHeater
-        | DeviceReadingsEnergyBalance
-    ),
-    Field(discriminator="device_type"),
+    Annotated[
+        (
+            DeviceReadingsCombiner
+            | DeviceReadingsSolarPV
+            | DeviceReadingsGridMeter
+            | DeviceReadingsGenericConsumer
+            | DeviceReadingsWaterHeater
+            | DeviceReadingsEnergyBalance
+        ),
+        Field(discriminator="device_type"),
+    ]
+    | DeviceReadingsUnknown,
+    Field(union_mode="left_to_right"),
 ]
 
 
