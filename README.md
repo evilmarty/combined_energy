@@ -30,5 +30,16 @@ After you have installed the custom component (see above):
 1. Goto the Configuration -> Integrations page.
 2. On the bottom right of the page, click on the + Add Integration sign to add an integration.
 3. Search for Combined Energy. (If you don't see it, try refreshing your browser page to reload the cache.)
-4. Provide the same credentials that are used for https://athome.combined.energy (see [How to get my Installation ID]).
+4. Provide the same credentials that are used for <https://athome.combined.energy> (see [How to get my Installation ID]).
 5. Click Submit so add the integration.
+
+### Testing
+
+Prerequisite that [uv](https://docs.astral.sh/uv/) is installed. Clone this repository and run the following command to test the integration:
+
+```bash
+git clone https://github.com/evilmarty/combined_energy.git
+cd combined_energy
+uv sync --locked --all-extras --dev
+uv run pytest
+```
