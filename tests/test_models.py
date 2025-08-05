@@ -17,8 +17,6 @@ from custom_components.combined_energy.models import (
     Installation,
     Login,
     LogSession,
-    PowerManagementConfig,
-    PowerManagementConfigChannel,
     Readings,
     Tariff,
     TariffDetails,
@@ -271,24 +269,6 @@ class TestInstallation:
                 iconOverride=None,
                 orderOverride=None,
                 assets=["PM1"],
-            ),
-        ]
-        assert installation.power_management.config == [
-            PowerManagementConfig(
-                name="GRD1",
-                channels=[PowerManagementConfigChannel(ch=0, ph="A")],
-            ),
-            PowerManagementConfig(
-                name="SOL1",
-                channels=[PowerManagementConfigChannel(ch=1, ph="A")],
-            ),
-            PowerManagementConfig(
-                name="GC1",
-                channels=[PowerManagementConfigChannel(ch=2, ph="A")],
-            ),
-            PowerManagementConfig(
-                name="AC1",
-                channels=[PowerManagementConfigChannel(ch=3, ph="A")],
             ),
         ]
 
