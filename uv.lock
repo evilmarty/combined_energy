@@ -562,7 +562,7 @@ wheels = [
 
 [[package]]
 name = "combined-energy"
-version = "0.6.2"
+version = "1.0.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]

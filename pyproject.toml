@@ -1,6 +1,6 @@
 [project]
 name = "combined-energy"
-version = "0.6.3"
+version = "1.0.0"
 readme = "README.md"
 requires-python = ">=3.13.2"
 dependencies = []
