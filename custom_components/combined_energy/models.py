@@ -83,26 +83,6 @@ class Device(BaseModel):
     assets: list[str] = Field(default_factory=list)
 
 
-class PowerManagementConfigChannel(BaseModel):
-    """Configuration for a channel in power management."""
-
-    channel: int = Field(alias="ch")
-    phase: str = Field(alias="ph")
-
-
-class PowerManagementConfig(BaseModel):
-    """Configuration for power management of a device."""
-
-    name: str
-    channels: list[PowerManagementConfigChannel]
-
-
-class PowerManagement(BaseModel):
-    """Details of an installation power management."""
-
-    config: list[PowerManagementConfig]
-
-
 class Installation(BaseModel):
     """Details of an installation."""
 
@@ -134,7 +114,6 @@ class Installation(BaseModel):
     tariff_plan_accepted: datetime = Field(alias="tariffPlanAccepted")
 
     devices: list[Device]
-    power_management: PowerManagement = Field(alias="pm")
 
 
 class Customer(BaseModel):
