@@ -153,6 +153,9 @@
       "energyConsumedSolar": [8.7e-4],
       "energyConsumedBattery": [0],
       "energyConsumedGrid": [0]
+    },
+    {
+      "deviceType": "UNKNOWN"
     }
   ]
 }

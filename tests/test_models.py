@@ -13,6 +13,7 @@ from custom_components.combined_energy.models import (
     DeviceReadingsGenericConsumer,
     DeviceReadingsGridMeter,
     DeviceReadingsSolarPV,
+    DeviceReadingsUnknown,
     DeviceReadingsWaterHeater,
     Installation,
     Login,
@@ -410,6 +411,9 @@ class TestReadings:
                 energyConsumedSolar=[8.7e-4],
                 energyConsumedBattery=[0],
                 energyConsumedGrid=[0],
+            ),
+            DeviceReadingsUnknown(
+                deviceType="UNKNOWN",
             ),
         ]
 
