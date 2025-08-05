@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from aiohttp import ClientResponseError
-from custom_components.combined_energy.client import ClientAuthError, get_client
 import voluptuous as vol
 
+from custom_components.combined_energy.client import ClientAuthError, get_client
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult

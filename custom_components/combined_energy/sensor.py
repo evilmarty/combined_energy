@@ -14,7 +14,6 @@ from custom_components.combined_energy.models import (
     Installation,
     ReadingsDevices,
 )
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,

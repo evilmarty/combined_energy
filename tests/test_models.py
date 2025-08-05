@@ -2,6 +2,9 @@
 
 from datetime import UTC, datetime
 
+from freezegun import freeze_time
+import pytest
+
 from custom_components.combined_energy.models import (
     ConnectionStatus,
     Device,
@@ -21,8 +24,6 @@ from custom_components.combined_energy.models import (
     TariffDetails,
     TariffGroup,
 )
-from freezegun import freeze_time
-import pytest
 
 
 class TestConnectionStatus:

@@ -3,10 +3,11 @@
 from datetime import UTC, datetime, timedelta
 
 from aiohttp import web
-from custom_components.combined_energy.client import Client, ClientAuthError
-from custom_components.combined_energy.models import Login
 from freezegun import freeze_time
 import pytest
+
+from custom_components.combined_energy.client import Client, ClientAuthError
+from custom_components.combined_energy.models import Login
 
 
 class TestClient:
