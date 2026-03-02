@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import cache
-from typing import Any
+from typing import Any, Self
 
 from aiohttp import ClientResponseError, ClientSession
 from aiohttp.hdrs import METH_GET, METH_POST
@@ -64,7 +64,7 @@ class Client:
         """Return the hash of the object."""
         return hash(self.mobile_or_email)
 
-    async def __aenter__(self) -> "Client":
+    async def __aenter__(self) -> Self:
         """Enter the runtime context related to this object."""
         self.auto_close = False
         return self
