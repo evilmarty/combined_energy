@@ -67,7 +67,7 @@ class CombinedEnergyCoordinator:
             name="tariff_details",
             update_interval=TARIFF_DETAILS_UPDATE_DELAY,
             update_method=self._update_tariff_details,
-            always_update=False,
+            always_update=True,
         )
         # This ensures that the log session coordinator triggers updates
         self.log_session.async_add_listener(
