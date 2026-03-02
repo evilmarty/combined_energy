@@ -1,6 +1,7 @@
 """Tests for combined energy models."""
 
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from freezegun import freeze_time
 import pytest
@@ -95,7 +96,7 @@ class TestInstallation:
         assert installation.source == "a"
         assert installation.role == "OWNER"
         assert installation.read_only is False
-        assert installation.timezone == "Etc/UTC"
+        assert installation.timezone == ZoneInfo("Etc/UTC")
         assert installation.dmg_id == 12345
         assert installation.tags == [
             "emu1",

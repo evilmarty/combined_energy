@@ -6,7 +6,6 @@ from collections.abc import Generator, Sequence
 from datetime import datetime
 from enum import Enum
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from custom_components.combined_energy.client import Client
 from custom_components.combined_energy.models import (
@@ -653,6 +652,7 @@ class PriceSensor(CombinedEnergyTariffSensor):
         coordinator: CombinedEnergyTariffDetailsCoordinator,
     ) -> None:
         """Initialise Group Price Sensor."""
+        self._timezone = installation.timezone
         super().__init__(
             installation=installation,
             coordinator=coordinator,
@@ -672,8 +672,6 @@ class PriceSensor(CombinedEnergyTariffSensor):
         """Return the value reported by the sensor."""
         if self.coordinator.data is None:
             return None
-        tz = ZoneInfo(self.hass.config.time_zone)
-        now = datetime.now(tz=tz)
-        if (cost := self.coordinator.data.tariff.cost_at(now)) is not None:
-            return cost / 100.0
-        return None
+        now = datetime.now(tz=self._timezone)
+        cost = self.coordinator.data.tariff.cost_at(now)
+        return cost / 100.0 if cost is not None else None

@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise, zip_longest
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
 
@@ -98,7 +99,7 @@ class Installation(BaseModel):
     mqtt_account_kura: str = Field(alias="mqttAccountKura")
     mqtt_broker_ems: str = Field(alias="mqttBrokerEms")
 
-    timezone: str
+    timezone: ZoneInfo
     street_address: str = Field(alias="streetAddress")
     locality: str
     state: str
