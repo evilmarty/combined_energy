@@ -335,13 +335,44 @@ class TariffGroup(BaseModel):
 
     def cost_at(self, dt: datetime) -> float | None:
         """Get the cost at a specific datetime."""
-        if dt.month in self.months and dt.weekday() + 1 in self.days:
+        if dt.month in self.months and dt.isoweekday() in self.days:
             ranges = pairwise(self.periods)
             for i, range_ in enumerate(ranges):
                 if range_[0] <= dt.hour < range_[1]:
                     return self.costs[i]
             # Handle the last period
             return self.costs[-1]
+        return None
+
+    def next_cost_change(self, dt: datetime) -> datetime | None:
+        """Get the next datetime when the cost changes."""
+        if not self.days or not self.months or not self.periods:
+            return None
+
+        # Set the time to the start of the current hour, as cost changes only occur at the start of an hour
+        dt = dt.replace(minute=0, second=0, microsecond=0)
+        # Find the next hour in the current day
+        if dt.month in self.months and dt.isoweekday() in self.days:
+            if (p := next((p for p in self.periods if p > dt.hour), None)) is not None:
+                return dt.replace(hour=p)
+        # Use the first period of the next day
+        dt = dt.replace(hour=self.periods[0]) + timedelta(days=1)
+        # Find the next day in the current and consecutive months
+        while dt.month in self.months:
+            if dt.isoweekday() in self.days:
+                return dt
+            dt += timedelta(days=1)
+        # Check if there are more months in the current year, otherwise move to the next year
+        if (m := next((m for m in self.months if m > dt.month), None)) is not None:
+            dt = dt.replace(month=m, day=1)
+        else:
+            dt = dt.replace(year=dt.year + 1, month=self.months[0], day=1)
+        # Find the next day in the current and consecutive months, again
+        while dt.month in self.months:
+            if dt.isoweekday() in self.days:
+                return dt
+            dt += timedelta(days=1)
+        # If we get here, there are no more valid days in the next year, so we return None
         return None
 
 
@@ -369,6 +400,12 @@ class Tariff(BaseModel):
             if (cost := group.cost_at(dt)) is not None:
                 return cost
         return None
+
+    def next_cost_change(self, dt: datetime) -> datetime | None:
+        """Get the next datetime when the cost changes."""
+        next_changes = [group.next_cost_change(dt) for group in self.groups]
+        next_changes = [change for change in next_changes if change is not None]
+        return min(next_changes) if next_changes else None
 
 
 class TariffDetails(BaseModel):

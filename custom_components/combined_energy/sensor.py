@@ -30,6 +30,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import CALLBACK_TYPE, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CURRENCY_AUD, DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
@@ -611,7 +612,7 @@ class CombinedEnergyTariffSensor(
     def __init__(
         self,
         installation: Installation,
-        coordinator: CombinedEnergyReadingsCoordinator,
+        coordinator: CombinedEnergyTariffDetailsCoordinator,
         description: CombinedEnergySensorDescription,
     ) -> None:
         """Initialise Tariff Sensor."""
@@ -646,6 +647,8 @@ class CombinedEnergyTariffSensor(
 class PriceSensor(CombinedEnergyTariffSensor):
     """Sensor for group price readings."""
 
+    _cancel_next_refresh: CALLBACK_TYPE | None = None
+
     def __init__(
         self,
         installation: Installation,
@@ -666,6 +669,46 @@ class PriceSensor(CombinedEnergyTariffSensor):
                 suggested_display_precision=2,
             ),
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        self._schedule_refresh()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Run when entity about to be removed from hass."""
+        await super().async_will_remove_from_hass()
+        if self._cancel_next_refresh:
+            self._cancel_next_refresh()
+            self._cancel_next_refresh = None
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        super()._handle_coordinator_update()
+        self._schedule_refresh()
+
+    def _schedule_refresh(self) -> None:
+        """Schedule a refresh for the next cost change."""
+        if self._cancel_next_refresh:
+            self._cancel_next_refresh()
+            self._cancel_next_refresh = None
+
+        if self.coordinator.data is None:
+            return
+
+        now = datetime.now(tz=self._timezone)
+        next_change = self.coordinator.data.tariff.next_cost_change(now)
+        if next_change is None:
+            return
+
+        self._cancel_next_refresh = async_track_point_in_time(
+            self.hass, self._refresh_price, next_change
+        )
+
+    def _refresh_price(self) -> None:
+        """Refresh the price sensor."""
+        self.async_write_ha_state()
+        self._schedule_refresh()
 
     @property
     def native_value(self) -> float | None:
