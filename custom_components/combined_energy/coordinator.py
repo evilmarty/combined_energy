@@ -25,9 +25,17 @@ from .const import (
     TARIFF_DETAILS_UPDATE_DELAY,
 )
 
-CombinedEnergyLogSessionCoordinator = DataUpdateCoordinator[LogSession]
-CombinedEnergyTariffDetailsCoordinator = DataUpdateCoordinator[TariffDetails]
-CombinedEnergyReadingsCoordinator = DataUpdateCoordinator[Readings]
+
+class CombinedEnergyLogSessionCoordinator(DataUpdateCoordinator[LogSession]):
+    """Update coordinator for log session."""
+
+
+class CombinedEnergyTariffDetailsCoordinator(DataUpdateCoordinator[TariffDetails]):
+    """Update coordinator for tariff details."""
+
+
+class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
+    """Update coordinator for readings."""
 
 
 class CombinedEnergyCoordinator:
@@ -67,7 +75,7 @@ class CombinedEnergyCoordinator:
             name="tariff_details",
             update_interval=TARIFF_DETAILS_UPDATE_DELAY,
             update_method=self._update_tariff_details,
-            always_update=True,
+            always_update=False,
         )
         # This ensures that the log session coordinator triggers updates
         self.log_session.async_add_listener(

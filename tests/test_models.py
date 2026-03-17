@@ -523,6 +523,37 @@ class TestTariffDetails:
         ]
         assert tariff_details.tariff.cost_at(datetime) == expected
 
+    @pytest.mark.parametrize(
+        ("datetime", "expected"),
+        [
+            (datetime(2025, 1, 1, 0, 27, 50), datetime(2025, 1, 1, 7, 0)),
+            (datetime(2025, 1, 1, 6, 27, 50), datetime(2025, 1, 1, 7, 0)),
+            (datetime(2025, 1, 1, 7, 27, 50), datetime(2025, 1, 1, 16, 0)),
+            (datetime(2025, 1, 1, 22, 27, 50), datetime(2025, 1, 2, 0, 0)),
+            (datetime(2025, 1, 5, 23, 27, 50), datetime(2025, 1, 6, 0, 0)),
+            (datetime(2025, 1, 31, 23, 27, 50), datetime(2025, 2, 1, 1, 0)),
+            (datetime(2025, 11, 30, 23, 27, 50), datetime(2026, 1, 1, 0, 0)),
+            (datetime(2025, 12, 4, 5, 27, 50), datetime(2026, 1, 1, 0, 0)),
+        ],
+    )
+    def test_next_cost_change(self, tariff_details: TariffDetails, datetime, expected):
+        """Test next_change method."""
+        tariff_details.tariff.groups = [
+            TariffGroup(
+                days=[1, 2, 3, 4, 5],
+                months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                periods=[0, 7, 16, 20, 22],
+                costs=[15.74, 16.93, 27.96, 16.93, 15.74],
+            ),
+            TariffGroup(
+                days=[6, 7],
+                months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                periods=[1, 8, 23],
+                costs=[15.74, 16.93, 15.74],
+            ),
+        ]
+        assert tariff_details.tariff.next_cost_change(datetime) == expected
+
 
 class TestDeviceReadingsWaterHeater:
     """Test DeviceReadingsWaterHeater model."""
