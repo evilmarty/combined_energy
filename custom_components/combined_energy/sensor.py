@@ -424,7 +424,7 @@ def _generate_sensors(
 
 def _generate_readings_sensors(
     installation: Installation,
-    coordinator: CombinedEnergyTariffDetailsCoordinator,
+    coordinator: CombinedEnergyReadingsCoordinator,
 ) -> Generator[CombinedEnergyReadingsSensor]:
     """Generate sensor entities from installed devices."""
 
@@ -503,8 +503,8 @@ class CombinedEnergyReadingsSensor(
             return None
         for device in self.coordinator.data.devices:
             if (
-                device.device_type == self.device_type
-                and device.device_id == self.device_id
+                getattr(device, "device_type", None) == self.device_type
+                and getattr(device, "device_id", None) == self.device_id
             ):
                 return device
         return None
