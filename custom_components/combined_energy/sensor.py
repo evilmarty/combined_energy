@@ -368,8 +368,6 @@ COMBINER_DEVICE = Device(
     consumerDevice=False,
     maxPowerSupply=None,
     maxPowerConsumption=None,
-    iconOverride=None,
-    orderOverride=None,
     status="",
     category="",
 )

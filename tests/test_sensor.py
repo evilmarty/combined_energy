@@ -5,11 +5,18 @@ from unittest.mock import MagicMock, patch
 from freezegun import freeze_time
 import pytest
 
+from custom_components.combined_energy.const import CURRENCY_AUD
 from custom_components.combined_energy.coordinator import (
     CombinedEnergyTariffDetailsCoordinator,
 )
 from custom_components.combined_energy.models import Installation, TariffDetails
-from custom_components.combined_energy.sensor import PriceSensor
+from custom_components.combined_energy.sensor import (
+    CombinedEnergySensorDescription,
+    CombinedEnergyTariffSensor,
+    PriceSensor,
+)
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import UnitOfEnergy
 from homeassistant.core import HomeAssistant
 
 
@@ -35,14 +42,67 @@ def mock_hass():
     return MagicMock(spec=HomeAssistant)
 
 
-@pytest.fixture
-def mock_coordinator(tariff_details):
-    """Mock CombinedEnergyTariffDetailsCoordinator."""
-    return MagicMock(spec=CombinedEnergyTariffDetailsCoordinator, data=tariff_details)
+class TestCombinedEnergyTariffSensor:
+    """Tests for CombinedEnergyTariffSensor."""
+
+    @pytest.fixture
+    def mock_coordinator(self, tariff_details):
+        """Mock CombinedEnergyTariffDetailsCoordinator."""
+        return MagicMock(
+            spec=CombinedEnergyTariffDetailsCoordinator, data=tariff_details
+        )
+
+    @pytest.fixture
+    def entity_description(self):
+        """CombinedEnergySensorDescription fixture."""
+        return CombinedEnergySensorDescription(
+            key="foobar",
+            translation_key="foobar_translation",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+        )
+
+    @pytest.fixture
+    def sensor(self, installation, mock_coordinator, entity_description, mock_hass):
+        """CombinedEnergyTariffSensor fixture."""
+        sensor = CombinedEnergyTariffSensor(
+            installation, mock_coordinator, entity_description
+        )
+        sensor.hass = mock_hass
+        return sensor
+
+    def test_init(self, sensor, installation, entity_description):
+        """Test CombinedEnergyTariffSensor initialization."""
+        assert (
+            sensor.unique_id
+            == f"install_{installation.id}-tariff-details-{entity_description.key}"
+        )
+        assert sensor.entity_description == entity_description
+
+    @pytest.mark.parametrize(
+        ("data", "expected"),
+        [
+            (None, None),
+            (MagicMock(tariff=MagicMock(foobar=1234)), 12.34),
+        ],
+    )
+    def test_native_value(self, sensor, mock_coordinator, data, expected):
+        """Test CombinedEnergyTariffSensor native_value."""
+        mock_coordinator.data = data
+        assert sensor.native_value == expected
 
 
 class TestPriceSensor:
     """Tests for PriceSensor."""
+
+    @pytest.fixture
+    def mock_coordinator(self, tariff_details):
+        """Mock CombinedEnergyTariffDetailsCoordinator."""
+        return MagicMock(
+            spec=CombinedEnergyTariffDetailsCoordinator, data=tariff_details
+        )
 
     @pytest.fixture
     def sensor(self, installation, mock_coordinator, mock_hass):
@@ -51,10 +111,19 @@ class TestPriceSensor:
         sensor.hass = mock_hass
         return sensor
 
-    def test_init(self, installation, sensor):
+    def test_init(self, installation, sensor: PriceSensor):
         """Test PriceSensor initialization."""
         assert sensor._timezone == installation.timezone  # noqa: SLF001
         assert sensor.unique_id == f"install_{installation.id}-tariff-details-cost"
+        assert sensor.translation_key == "tariff_details_cost"
+        assert sensor.icon == "mdi:cash-minus"
+        assert sensor.suggested_display_precision == 2
+        assert sensor.state_class == SensorStateClass.TOTAL
+        assert sensor.device_class == SensorDeviceClass.MONETARY
+        assert (
+            sensor.native_unit_of_measurement
+            == f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}"
+        )
 
     @freeze_time("2025-04-13 06:51:50")
     def test_native_value(self, sensor):
