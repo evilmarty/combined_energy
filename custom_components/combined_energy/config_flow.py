@@ -12,7 +12,13 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
 from .bridge import BridgeBootstrap, BridgeBootstrapError, validate_bridge_host
-from .const import DEFAULT_NAME, DOMAIN, LOGGER
+from .const import (
+    CONF_STALE_ENTITY_CLEANUP_PENDING,
+    DEFAULT_NAME,
+    DOMAIN,
+    LOGGER,
+)
+from .sensor import cleanup_stale_sensor_entities
 
 
 class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -83,16 +89,22 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if host and (bootstrap := await self._validate_host(host)) is not None:
                 await self.async_set_unique_id(str(bootstrap.installation.id))
                 self._abort_if_unique_id_mismatch()
+                if entry.data.get(CONF_STALE_ENTITY_CLEANUP_PENDING):
+                    cleanup_stale_sensor_entities(self.hass, entry, bootstrap.installation)
                 ir.async_delete_issue(
                     self.hass,
                     DOMAIN,
                     f"{entry.entry_id}_needs_reconfigure",
                 )
-                return self.async_update_reload_and_abort(
+                updated_data = {**entry.data, **bootstrap.as_config_data()}
+                updated_data.pop(CONF_STALE_ENTITY_CLEANUP_PENDING, None)
+                self.hass.config_entries.async_update_entry(
                     entry,
                     title=user_input.get(CONF_NAME, "").strip() or entry.title,
-                    data_updates=bootstrap.as_config_data(),
+                    data=updated_data,
                 )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reconfigure_successful")
         else:
             user_input = {
                 CONF_NAME: entry.title or "",

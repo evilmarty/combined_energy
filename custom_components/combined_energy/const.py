@@ -14,6 +14,7 @@ DATA_COORDINATOR: Final[str] = "coordinator"
 
 # Config entry keys.
 CONF_MQTT_PASSWORD: Final[str] = "mqtt_password"
+CONF_STALE_ENTITY_CLEANUP_PENDING: Final[str] = "stale_entity_cleanup_pending"
 DEFAULT_NAME: Final[str] = "Combined Energy"
 
 MQTT_RECONNECT_DELAY: Final[timedelta] = timedelta(seconds=10)

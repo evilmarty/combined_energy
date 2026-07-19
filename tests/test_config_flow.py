@@ -6,6 +6,10 @@ import pytest
 
 from custom_components.combined_energy.bridge import BridgeBootstrap
 from custom_components.combined_energy.config_flow import CombinedEnergyConfigFlow
+from custom_components.combined_energy.const import (
+    CONF_MQTT_PASSWORD,
+    CONF_STALE_ENTITY_CLEANUP_PENDING,
+)
 from custom_components.combined_energy.models import Installation
 from homeassistant.const import CONF_HOST, CONF_NAME
 
@@ -87,20 +91,26 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
     )
     flow = CombinedEnergyConfigFlow()
     flow.hass = MagicMock()
+    flow.hass.config_entries = MagicMock()
+    flow.hass.config_entries.async_update_entry = MagicMock()
+    flow.hass.config_entries.async_reload = AsyncMock()
     flow.async_set_unique_id = AsyncMock()
     flow._abort_if_unique_id_mismatch = MagicMock()
     entry = MagicMock()
     entry.title = "Combined Energy"
-    entry.data = {CONF_HOST: "old-bridge.local"}
+    entry.entry_id = "entry-1"
+    entry.data = {
+        CONF_HOST: "old-bridge.local",
+        CONF_STALE_ENTITY_CLEANUP_PENDING: True,
+    }
     flow._get_reconfigure_entry = MagicMock(return_value=entry)
-    flow.async_update_reload_and_abort = MagicMock(
-        return_value={"type": "abort", "reason": "reconfigure_successful"}
-    )
 
     with patch(
         "custom_components.combined_energy.config_flow.validate_bridge_host",
         new=AsyncMock(return_value=bootstrap),
-    ):
+    ), patch(
+        "custom_components.combined_energy.config_flow.cleanup_stale_sensor_entities"
+    ) as cleanup_stale_sensor_entities:
         result = await flow.async_step_reconfigure(
             {
                 CONF_NAME: "Combined Energy Updated",
@@ -110,10 +120,17 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
 
     flow.async_set_unique_id.assert_awaited_once_with(str(installation.id))
     flow._abort_if_unique_id_mismatch.assert_called_once_with()
-    flow.async_update_reload_and_abort.assert_called_once_with(
+    cleanup_stale_sensor_entities.assert_called_once_with(
+        flow.hass, entry, installation
+    )
+    flow.hass.config_entries.async_update_entry.assert_called_once_with(
         entry,
         title="Combined Energy Updated",
-        data_updates=bootstrap.as_config_data(),
+        data={
+            CONF_HOST: "bridge.local",
+            CONF_MQTT_PASSWORD: "bridge-secret",
+        },
     )
+    flow.hass.config_entries.async_reload.assert_awaited_once_with(entry.entry_id)
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"

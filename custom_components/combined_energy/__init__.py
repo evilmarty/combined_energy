@@ -10,7 +10,12 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
 
 from .bridge import BridgeBootstrapError, BridgeConnectionError, get_bridge_client
-from .const import DATA_BRIDGE_CLIENT, DATA_COORDINATOR, DOMAIN
+from .const import (
+    CONF_STALE_ENTITY_CLEANUP_PENDING,
+    DATA_BRIDGE_CLIENT,
+    DATA_COORDINATOR,
+    DOMAIN,
+)
 from .coordinator import CombinedEnergyReadingsCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -82,7 +87,8 @@ async def async_unload_entry(
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate old config entries."""
     if entry.version == 1:
-        hass.config_entries.async_update_entry(entry, version=2)
+        data = {**entry.data, CONF_STALE_ENTITY_CLEANUP_PENDING: True}
+        hass.config_entries.async_update_entry(entry, version=2, data=data)
         ir.async_create_issue(
             hass,
             DOMAIN,

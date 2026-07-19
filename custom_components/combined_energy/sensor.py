@@ -27,6 +27,7 @@ from homeassistant.const import (
     UnitOfVolume,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -427,6 +428,48 @@ async def async_setup_entry(
 
     LOGGER.info("Setting up Combined Energy sensors")
     async_add_entities(_generate_readings_sensors(installation, coordinator))
+
+
+def _sensor_unique_id(installation_id: int, device_id: int, key: str) -> str:
+    """Build sensor unique id."""
+    return f"install_{installation_id}-device_{device_id}-{key}"
+
+
+def _expected_sensor_unique_ids(installation: Installation) -> set[str]:
+    """Build all expected sensor unique ids for an installation."""
+    expected = {
+        _sensor_unique_id(installation.id, SYSTEM_DEVICE.id, description.key)
+        for description in SYSTEM_SENSOR_DESCRIPTIONS
+    }
+    expected.update(
+        _sensor_unique_id(installation.id, COMBINER_DEVICE.id, description.key)
+        for description in COMBINER_SENSOR_DESCRIPTIONS
+    )
+    for device in installation.devices:
+        for description in SENSOR_DESCRIPTIONS.get(device.device_type, []):
+            expected.add(_sensor_unique_id(installation.id, device.id, description.key))
+    return expected
+
+
+def cleanup_stale_sensor_entities(
+    hass: HomeAssistant, entry: ConfigEntry, installation: Installation
+) -> None:
+    """Remove stale sensor entities no longer produced after reconfigure."""
+    expected = _expected_sensor_unique_ids(installation)
+    unique_id_prefix = f"install_{installation.id}-"
+    registry = er.async_get(hass)
+
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if (
+            entity.unique_id.startswith(unique_id_prefix)
+            and entity.unique_id not in expected
+        ):
+            LOGGER.debug(
+                "Removing stale entity during reconfigure %s (%s)",
+                entity.entity_id,
+                entity.unique_id,
+            )
+            registry.async_remove(entity.entity_id)
 
 
 def _generate_readings_sensors(
