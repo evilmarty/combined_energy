@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import issue_registry as ir
 
 from .bridge import BridgeBootstrap, BridgeBootstrapError, validate_bridge_host
 from .const import DEFAULT_NAME, DOMAIN, LOGGER
@@ -82,6 +83,11 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if host and (bootstrap := await self._validate_host(host)) is not None:
                 await self.async_set_unique_id(str(bootstrap.installation.id))
                 self._abort_if_unique_id_mismatch()
+                ir.async_delete_issue(
+                    self.hass,
+                    DOMAIN,
+                    f"{entry.entry_id}_needs_reconfigure",
+                )
                 return self.async_update_reload_and_abort(
                     entry,
                     title=user_input.get(CONF_NAME, "").strip() or entry.title,

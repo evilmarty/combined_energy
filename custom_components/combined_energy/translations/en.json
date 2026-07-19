@@ -14,7 +14,14 @@
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Reconfiguration was successful"
+    }
+  },
+  "issues": {
+    "needs_reconfigure": {
+      "title": "Reconfiguration required",
+      "description": "This entry was migrated and needs to be reconfigured. Open the integration and run reconfigure."
     }
   },
   "entity": {
