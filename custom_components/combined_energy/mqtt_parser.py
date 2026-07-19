@@ -9,7 +9,7 @@ import json
 import re
 from typing import Any
 
-READINGS_BINARY_MARKER = rb"\n\x08readings\x10\x05B.\+"
+READINGS_BINARY_MARKER = rb"\n\x08readings\x10\x05B."
 
 
 def _sanitize_payload(payload: bytes | str) -> str:
@@ -18,7 +18,7 @@ def _sanitize_payload(payload: bytes | str) -> str:
         marker_match = re.search(READINGS_BINARY_MARKER, payload, flags=re.DOTALL)
         if marker_match is None:
             raise ValueError("No readings binary marker found in payload")
-        payload = payload[marker_match.end() :]
+        payload = payload[marker_match.end() + 1 :]
         text = payload.decode("utf-8", errors="ignore")
     else:
         text = payload

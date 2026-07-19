@@ -185,7 +185,9 @@ class CombinerReading(CommonDeviceReadings):
         default=None, alias="energyExportedSolar"
     )
     energy_stored: float | None = Field(default=None, alias="energyStored")
-    energy_stored_battery: float | None = Field(default=None, alias="energyStoredBattery")
+    energy_stored_battery: float | None = Field(
+        default=None, alias="energyStoredBattery"
+    )
     energy_stored_grid: float | None = Field(default=None, alias="energyStoredGrid")
     energy_stored_solar: float | None = Field(default=None, alias="energyStoredSolar")
     invalid_reason: str | None = Field(default=None, alias="invalidReason")
@@ -209,7 +211,9 @@ class SolarPvReading(CommonDeviceReadings):
     energy_supplied_exported: float | None = Field(
         default=None, alias="energySuppliedExported"
     )
-    energy_supplied_stored: float | None = Field(default=None, alias="energySuppliedStored")
+    energy_supplied_stored: float | None = Field(
+        default=None, alias="energySuppliedStored"
+    )
     max_power_production: float | None = Field(default=None, alias="maxPowerProduction")
     meta: dict[str, Any] | None = None
     power_avg: float | None = Field(default=None, alias="powerAvg")
@@ -246,7 +250,9 @@ class GridMeterReading(CommonDeviceReadings):
     energy_supplied_exported: float | None = Field(
         default=None, alias="energySuppliedExported"
     )
-    energy_supplied_stored: float | None = Field(default=None, alias="energySuppliedStored")
+    energy_supplied_stored: float | None = Field(
+        default=None, alias="energySuppliedStored"
+    )
     frequency_avg: float | None = Field(default=None, alias="frequencyAvg")
     frequency_max: float | None = Field(default=None, alias="frequencyMax")
     frequency_min: float | None = Field(default=None, alias="frequencyMin")
@@ -272,16 +278,22 @@ class GridMeterReading(CommonDeviceReadings):
     power_max: float | None = Field(default=None, alias="powerMax")
     power_min: float | None = Field(default=None, alias="powerMin")
     power_reactive_a_avg: float | None = Field(default=None, alias="powerReactiveAAvg")
-    power_reactive_a_last: float | None = Field(default=None, alias="powerReactiveALast")
+    power_reactive_a_last: float | None = Field(
+        default=None, alias="powerReactiveALast"
+    )
     power_reactive_a_max: float | None = Field(default=None, alias="powerReactiveAMax")
     power_reactive_a_min: float | None = Field(default=None, alias="powerReactiveAMin")
     power_reactive_avg: float | None = Field(default=None, alias="powerReactiveAvg")
     power_reactive_b_avg: float | None = Field(default=None, alias="powerReactiveBAvg")
-    power_reactive_b_last: float | None = Field(default=None, alias="powerReactiveBLast")
+    power_reactive_b_last: float | None = Field(
+        default=None, alias="powerReactiveBLast"
+    )
     power_reactive_b_max: float | None = Field(default=None, alias="powerReactiveBMax")
     power_reactive_b_min: float | None = Field(default=None, alias="powerReactiveBMin")
     power_reactive_c_avg: float | None = Field(default=None, alias="powerReactiveCAvg")
-    power_reactive_c_last: float | None = Field(default=None, alias="powerReactiveCLast")
+    power_reactive_c_last: float | None = Field(
+        default=None, alias="powerReactiveCLast"
+    )
     power_reactive_c_max: float | None = Field(default=None, alias="powerReactiveCMax")
     power_reactive_c_min: float | None = Field(default=None, alias="powerReactiveCMin")
     power_reactive_last: float | None = Field(default=None, alias="powerReactiveLast")
@@ -337,15 +349,23 @@ class WaterHeaterReading(GenericConsumerReading):
 
     amenity_water_temp: float | None = Field(default=None, alias="amenityWaterTemp")
     available_energy: float | None = Field(alias="currentAmenityLitres")
-    cumulative_charge_energy: float | None = Field(default=None, alias="cumChargeEnergy")
-    cumulative_discharge_seconds: int | None = Field(default=None, alias="cumDischargeSecs")
+    cumulative_charge_energy: float | None = Field(
+        default=None, alias="cumChargeEnergy"
+    )
+    cumulative_discharge_seconds: int | None = Field(
+        default=None, alias="cumDischargeSecs"
+    )
     estimated_flow_rate: float | None = Field(default=None, alias="estFlowRate")
     external_inlet_temperature: float | None = Field(default=None, alias="extInletTemp")
-    external_outlet_temperature: float | None = Field(default=None, alias="extOutletTemp")
+    external_outlet_temperature: float | None = Field(
+        default=None, alias="extOutletTemp"
+    )
     inlet_temperature: float | None = Field(default=None, alias="inletTemp")
     max_energy: float | None = Field(default=None, alias="maxAmenityLitres")
     max_energy_estimate: float | None = Field(default=None, alias="maxEnergy")
-    max_power_consumption: float | None = Field(default=None, alias="maxPowerConsumption")
+    max_power_consumption: float | None = Field(
+        default=None, alias="maxPowerConsumption"
+    )
     min_amenity_litres: float | None = Field(default=None, alias="minAmenityLitres")
     optimal_amenity_litres: float | None = Field(default=None, alias="optAmenityLitres")
     state_of_charge: float | None = Field(default=None, alias="sOC")
