@@ -1,5 +1,6 @@
 """Tests for Combined Energy readings sensors."""
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -232,6 +233,39 @@ class TestCombinedEnergyReadingsSensor:
 
         assert isinstance(sensor.readings_device, SystemReading)
         assert sensor.native_value == sensor.readings_device.reading_count
+
+    def test_system_startup_timestamp_sensor_returns_datetime(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """Startup timestamp sensors should expose datetime values."""
+        system_device = Device(
+            id=0,
+            type="SystemReading",
+            refName="",
+            name="System",
+            manufacturer=None,
+            model=None,
+            serial=None,
+            supplier=False,
+            storage=False,
+            consumer=False,
+            max_power_consumption=None,
+            status="",
+            category="",
+        )
+        description = CombinedEnergySensorDescription(
+            key="jvm_startup",
+            translation_key="system_jvm_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, system_device, description, mock_coordinator
+        )
+        sensor.hass = mock_hass
+
+        assert sensor.native_value == datetime.fromtimestamp(
+            sensor.readings_device.jvm_startup, installation.timezone
+        )
 
     def test_system_and_combiner_have_distinct_device_identifiers(
         self, installation, mock_coordinator, mock_hass

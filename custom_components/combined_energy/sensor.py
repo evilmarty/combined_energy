@@ -299,14 +299,17 @@ SYSTEM_SENSOR_DESCRIPTIONS = [
     CombinedEnergySensorDescription(
         key="jvm_startup",
         translation_key="system_jvm_startup",
+        device_class=SensorDeviceClass.TIMESTAMP,
     ),
     CombinedEnergySensorDescription(
         key="os_startup",
         translation_key="system_os_startup",
+        device_class=SensorDeviceClass.TIMESTAMP,
     ),
     CombinedEnergySensorDescription(
         key="plugin_startup",
         translation_key="system_plugin_startup",
+        device_class=SensorDeviceClass.TIMESTAMP,
     ),
     CombinedEnergySensorDescription(
         key="operation_status",
@@ -530,6 +533,7 @@ class CombinedEnergyReadingsSensor(
 
         self.device_id = device.id if device.id != 0 else None
         self.device_type = device.device_type
+        self._installation_timezone = installation.timezone
         self.entity_description = description
 
         identifier = f"install_{installation.id}-device_{device.id}"
@@ -578,6 +582,11 @@ class CombinedEnergyReadingsSensor(
     def native_value(self) -> int | float | str | datetime | None:
         """Return the state of the sensor."""
         value = self._raw_value
+        if (
+            self.entity_description.device_class == SensorDeviceClass.TIMESTAMP
+            and isinstance(value, int | float)
+        ):
+            return datetime.fromtimestamp(value, self._installation_timezone)
         if self.entity_description.absolute and isinstance(value, int | float):
             return abs(value)
         return value
