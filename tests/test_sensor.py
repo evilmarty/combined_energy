@@ -142,3 +142,62 @@ class TestCombinedEnergyReadingsSensor:
 
         assert isinstance(sensor.readings_device, SystemReading)
         assert sensor.native_value == sensor.readings_device.reading_count
+
+    def test_system_and_combiner_have_distinct_device_identifiers(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """System and combiner must not share the same HA device identifier."""
+        system_device = Device(
+            id=0,
+            type="SystemReading",
+            refName="",
+            name="System",
+            manufacturer=None,
+            model=None,
+            serial=None,
+            supplier=False,
+            storage=False,
+            consumer=False,
+            max_power_consumption=None,
+            status="",
+            category="",
+        )
+        combiner_device = Device(
+            id=0,
+            type="CombinerReading",
+            refName="",
+            name="Combiner",
+            manufacturer=None,
+            model=None,
+            serial=None,
+            supplier=False,
+            storage=False,
+            consumer=False,
+            max_power_consumption=None,
+            status="",
+            category="",
+        )
+        system_description = CombinedEnergySensorDescription(
+            key="reading_count",
+            translation_key="system_reading_count",
+        )
+        combiner_description = CombinedEnergySensorDescription(
+            key="energy_supplied",
+            translation_key="combiner_energy_supplied",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+        )
+        system_sensor = CombinedEnergyReadingsSensor(
+            installation, system_device, system_description, mock_coordinator
+        )
+        combiner_sensor = CombinedEnergyReadingsSensor(
+            installation, combiner_device, combiner_description, mock_coordinator
+        )
+        system_sensor.hass = mock_hass
+        combiner_sensor.hass = mock_hass
+
+        assert system_sensor.unique_id == f"install_{installation.id}-device_0-reading_count"
+        assert combiner_sensor.unique_id == f"install_{installation.id}-device_0-energy_supplied"
+        assert system_sensor.device_info["identifiers"] != combiner_sensor.device_info["identifiers"]

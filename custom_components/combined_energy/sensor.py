@@ -481,8 +481,13 @@ class CombinedEnergyReadingsSensor(
 
         identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
+        device_identifier = (
+            f"{identifier}-system"
+            if device.id == 0 and device.device_type == "SystemReading"
+            else identifier
+        )
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, identifier)},
+            identifiers={(DOMAIN, device_identifier)},
             manufacturer=device.manufacturer,
             serial_number=device.serial_number,
             model=device.model_name,
