@@ -1,13 +1,12 @@
-"""Sensors and factory for enumerating devices from the Combined Energy API."""
+"""Sensors and factory for enumerating devices from bridge MQTT readings."""
 
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
 from datetime import datetime
-from enum import Enum
 from typing import Any
 
-from custom_components.combined_energy.client import Client
+from custom_components.combined_energy.bridge import MqttBridgeClient
 from custom_components.combined_energy.models import (
     Device,
     Installation,
@@ -30,28 +29,14 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import CALLBACK_TYPE, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CURRENCY_AUD, DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
-from .coordinator import (
-    CombinedEnergyCoordinator,
-    CombinedEnergyReadingsCoordinator,
-    CombinedEnergyTariffDetailsCoordinator,
-)
-
-
-class Aggregation(Enum):
-    """Aggregation type for Combined Energy sensors."""
-
-    SUM = "sum"
-    LATEST = "latest"
+from .const import DATA_BRIDGE_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
+from .coordinator import CombinedEnergyReadingsCoordinator
 
 
 class CombinedEnergySensorDescription(SensorEntityDescription, frozen_or_thawed=True):
     """Describes Combined Energy sensor entity."""
-
-    aggregation: Aggregation = Aggregation.LATEST
 
 
 # Common sensors for all consumer devices
@@ -63,7 +48,6 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_solar",
@@ -74,7 +58,6 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_battery",
@@ -85,7 +68,6 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_grid",
@@ -96,7 +78,6 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
 ]
 SENSOR_DESCRIPTIONS = {
@@ -109,7 +90,6 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
         ),
     ],
     "WATER_HEATER": [
@@ -206,7 +186,6 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed",
@@ -216,7 +195,6 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_solar",
@@ -227,7 +205,6 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
-            aggregation=Aggregation.SUM,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_battery",
@@ -238,7 +215,6 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
-            aggregation=Aggregation.SUM,
         ),
         CombinedEnergySensorDescription(
             key="power_factor_a",
@@ -297,6 +273,49 @@ SENSOR_DESCRIPTIONS = {
     "ENERGY_BALANCE": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
 }
 
+SYSTEM_SENSOR_DESCRIPTIONS = [
+    CombinedEnergySensorDescription(
+        key="reading_count",
+        translation_key="system_reading_count",
+    ),
+    CombinedEnergySensorDescription(
+        key="connected_devices",
+        translation_key="system_connected_devices",
+    ),
+    CombinedEnergySensorDescription(
+        key="registered_devices",
+        translation_key="system_registered_devices",
+    ),
+    CombinedEnergySensorDescription(
+        key="jvm_startup",
+        translation_key="system_jvm_startup",
+    ),
+    CombinedEnergySensorDescription(
+        key="os_startup",
+        translation_key="system_os_startup",
+    ),
+    CombinedEnergySensorDescription(
+        key="plugin_startup",
+        translation_key="system_plugin_startup",
+    ),
+    CombinedEnergySensorDescription(
+        key="operation_status",
+        translation_key="system_operation_status",
+    ),
+    CombinedEnergySensorDescription(
+        key="operation_message",
+        translation_key="system_operation_message",
+    ),
+    CombinedEnergySensorDescription(
+        key="temperature",
+        translation_key="system_temperature",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=2,
+    ),
+]
+
 COMBINER_SENSOR_DESCRIPTIONS = [
     *SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
     CombinedEnergySensorDescription(
@@ -306,7 +325,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_solar",
@@ -317,7 +335,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_battery",
@@ -328,7 +345,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_grid",
@@ -339,7 +355,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_correction",
@@ -350,49 +365,42 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
 ]
 
-# Combiner isn't a real device but it's included in the readings with all the other devices
-COMBINER_DEVICE = Device(
-    deviceId=0,
-    deviceType="COMBINER",
+# System isn't listed in installation devices but it is included in readings.
+SYSTEM_DEVICE = Device(
+    id=0,
+    type="SystemReading",
     refName="",
-    displayName="Combiner",
-    deviceManufacturer=None,
-    deviceModelName=None,
-    deviceSerialNumber=None,
-    supplierDevice=False,
-    storageDevice=False,
-    consumerDevice=False,
-    maxPowerSupply=None,
-    maxPowerConsumption=None,
+    name="System",
+    manufacturer=None,
+    model=None,
+    serial=None,
+    supplier=False,
+    storage=False,
+    consumer=False,
+    max_power_consumption=None,
     status="",
     category="",
 )
 
-SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
-    CombinedEnergySensorDescription(
-        key="daily_fee",
-        translation_key="tariff_details_daily_fee",
-        icon="mdi:cash-sync",
-        state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
-        suggested_display_precision=2,
-    ),
-    CombinedEnergySensorDescription(
-        key="feed_in_cost",
-        translation_key="tariff_details_feed_in_cost",
-        icon="mdi:cash-plus",
-        state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
-        suggested_display_precision=2,
-    ),
-]
-
+# Combiner isn't a real device but it's included in the readings with all the other devices
+COMBINER_DEVICE = Device(
+    id=0,
+    type="CombinerReading",
+    refName="",
+    name="Combiner",
+    manufacturer=None,
+    model=None,
+    serial=None,
+    supplier=False,
+    storage=False,
+    consumer=False,
+    max_power_consumption=None,
+    status="",
+    category="",
+)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -401,25 +409,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up sensors."""
 
-    client: Client = hass.data[DOMAIN][entry.entry_id][DATA_API_CLIENT]
-    coordinator: CombinedEnergyCoordinator = hass.data[DOMAIN][entry.entry_id][
+    client: MqttBridgeClient = hass.data[DOMAIN][entry.entry_id][DATA_BRIDGE_CLIENT]
+    coordinator: CombinedEnergyReadingsCoordinator = hass.data[DOMAIN][entry.entry_id][
         DATA_COORDINATOR
     ]
-    installation = await client.installation()
+    installation = client.bootstrap.installation
 
     LOGGER.info("Setting up Combined Energy sensors")
-    async_add_entities(_generate_sensors(installation, coordinator))
-
-
-def _generate_sensors(
-    installation: Installation,
-    coordinator: CombinedEnergyCoordinator,
-) -> Generator[SensorEntity]:
-    """Generate sensor entities from installed devices."""
-    yield from _generate_readings_sensors(installation, coordinator.readings)
-    yield from _generate_tariff_details_sensors(
-        installation, coordinator.tariff_details
-    )
+    async_add_entities(_generate_readings_sensors(installation, coordinator))
 
 
 def _generate_readings_sensors(
@@ -427,6 +424,15 @@ def _generate_readings_sensors(
     coordinator: CombinedEnergyReadingsCoordinator,
 ) -> Generator[CombinedEnergyReadingsSensor]:
     """Generate sensor entities from installed devices."""
+
+    for description in SYSTEM_SENSOR_DESCRIPTIONS:
+        sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
+        yield sensor_type(
+            installation=installation,
+            device=SYSTEM_DEVICE,
+            description=description,
+            coordinator=coordinator,
+        )
 
     # Generate sensors from descriptions for the combiner device
     for description in COMBINER_SENSOR_DESCRIPTIONS:
@@ -451,23 +457,10 @@ def _generate_readings_sensors(
             )
 
 
-def _generate_tariff_details_sensors(
-    installation: Installation,
-    coordinator: CombinedEnergyTariffDetailsCoordinator,
-) -> Generator[CombinedEnergyTariffSensor]:
-    """Generate sensor entities from tariff details."""
-    if coordinator.data is not None:
-        yield PriceSensor(installation=installation, coordinator=coordinator)
-    for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS:
-        yield CombinedEnergyTariffSensor(
-            installation=installation, coordinator=coordinator, description=description
-        )
-
-
 class CombinedEnergyReadingsSensor(
     CoordinatorEntity[CombinedEnergyReadingsCoordinator], SensorEntity
 ):
-    """Representation of a Combined Energy API reading energy sensor."""
+    """Representation of a Combined Energy bridge reading sensor."""
 
     entity_description: CombinedEnergySensorDescription
     _attr_has_entity_name = True
@@ -501,11 +494,13 @@ class CombinedEnergyReadingsSensor(
         """Get readings for specific device."""
         if self.coordinator.data is None:
             return None
+        if self.device_id is not None:
+            for device in self.coordinator.data.devices:
+                if getattr(device, "device_id", None) == self.device_id:
+                    return device
+            return None
         for device in self.coordinator.data.devices:
-            if (
-                getattr(device, "device_type", None) == self.device_type
-                and getattr(device, "device_id", None) == self.device_id
-            ):
+            if getattr(device, "device_type", None) == self.device_type:
                 return device
         return None
 
@@ -519,57 +514,16 @@ class CombinedEnergyReadingsSensor(
     @property
     def available(self) -> bool:
         """Indicate if the entity is available."""
-        raw_value = self._raw_value
-        if isinstance(raw_value, Sequence):
-            return any(rv is not None for rv in raw_value)
-        return raw_value is not None
-
-    def _to_native_value(self, raw_value: Any) -> float | None:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
-
-    def _aggregate_sum(self, raw_values: Sequence[Any]) -> float | None:
-        """Sum all non-none raw values."""
-        if all(rv is None for rv in raw_values):
-            return None
-        return sum(self._to_native_value(rv) for rv in raw_values if rv is not None)
-
-    def _aggregate_latest(self, raw_values: Sequence[Any]) -> float | None:
-        """Return the last non-none raw value."""
-        for raw_value in reversed(raw_values):
-            if raw_value is not None:
-                return self._to_native_value(raw_value)
-        return None
+        return self._raw_value is not None
 
     @property
-    def last_reset(self) -> datetime | None:
-        """Last time the data was reset."""
-        if self.entity_description.state_class != SensorStateClass.TOTAL:
-            return None
-        readings_device = self.readings_device
-        if readings_device is None:
-            return None
-        if self.entity_description.aggregation == Aggregation.SUM:
-            return readings_device.range_start
-        return readings_device.range_end
-
-    @property
-    def native_value(self) -> int | float | None:
+    def native_value(self) -> int | float | str | datetime | None:
         """Return the state of the sensor."""
-        raw_value = self._raw_value
-        if raw_value is None:
-            return None
-        if isinstance(raw_value, Sequence):
-            match self.entity_description.aggregation:
-                case Aggregation.SUM:
-                    return self._aggregate_sum(raw_value)
-                case Aggregation.LATEST:
-                    return self._aggregate_latest(raw_value)
-        return self._to_native_value(raw_value)
+        return self._raw_value
 
 
 class GenericSensor(CombinedEnergyReadingsSensor):
-    """Sensor that returns the last value of a sequence of readings."""
+    """Sensor for generic scalar readings."""
 
 
 class EnergySensor(CombinedEnergyReadingsSensor):
@@ -597,122 +551,3 @@ SENSOR_TYPE_MAP: dict[
     SensorDeviceClass.WATER: WaterVolumeSensor,
     SensorDeviceClass.POWER_FACTOR: PowerFactorSensor,
 }
-
-
-class CombinedEnergyTariffSensor(
-    CoordinatorEntity[CombinedEnergyTariffDetailsCoordinator], SensorEntity
-):
-    """Representation of a Combined Energy API tariff sensor."""
-
-    entity_description: SensorEntityDescription
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        installation: Installation,
-        coordinator: CombinedEnergyTariffDetailsCoordinator,
-        description: CombinedEnergySensorDescription,
-    ) -> None:
-        """Initialise Tariff Sensor."""
-        super().__init__(coordinator)
-        identifier = f"install_{installation.id}-tariff-details"
-        self.entity_description = description
-        self._attr_unique_id = f"{identifier}-{description.key}"
-        if data := self.coordinator.data:
-            created_at = data.tariff.as_at.isoformat() if data.tariff.as_at else None
-            self._attr_device_info = DeviceInfo(
-                identifiers={
-                    (DOMAIN, identifier),
-                    (DOMAIN, f"tariff_plan_{data.tariff.plan_id}"),
-                },
-                manufacturer=data.tariff.retailer_name,
-                name=data.tariff.plan_name,
-                serial_number=str(data.tariff.plan_id),
-                created_at=created_at,
-                modified_at=data.tariff.updated.isoformat(),
-            )
-        else:
-            self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, identifier)})
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value reported by the sensor."""
-        if data := self.coordinator.data:
-            return getattr(data.tariff, self.entity_description.key) / 100.0
-        return None
-
-
-class PriceSensor(CombinedEnergyTariffSensor):
-    """Sensor for group price readings."""
-
-    _cancel_next_refresh: CALLBACK_TYPE | None = None
-
-    def __init__(
-        self,
-        installation: Installation,
-        coordinator: CombinedEnergyTariffDetailsCoordinator,
-    ) -> None:
-        """Initialise Group Price Sensor."""
-        self._timezone = installation.timezone
-        super().__init__(
-            installation=installation,
-            coordinator=coordinator,
-            description=SensorEntityDescription(
-                key="cost",
-                translation_key="tariff_details_cost",
-                icon="mdi:cash-minus",
-                state_class=SensorStateClass.TOTAL,
-                native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-                device_class=SensorDeviceClass.MONETARY,
-                suggested_display_precision=2,
-            ),
-        )
-
-    async def async_added_to_hass(self) -> None:
-        """Run when entity about to be added to hass."""
-        await super().async_added_to_hass()
-        self._schedule_refresh()
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Run when entity about to be removed from hass."""
-        await super().async_will_remove_from_hass()
-        if self._cancel_next_refresh:
-            self._cancel_next_refresh()
-            self._cancel_next_refresh = None
-
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        super()._handle_coordinator_update()
-        self._schedule_refresh()
-
-    def _schedule_refresh(self) -> None:
-        """Schedule a refresh for the next cost change."""
-        if self._cancel_next_refresh:
-            self._cancel_next_refresh()
-            self._cancel_next_refresh = None
-
-        if self.coordinator.data is None:
-            return
-
-        now = datetime.now(tz=self._timezone)
-        next_change = self.coordinator.data.tariff.next_cost_change(now)
-        if next_change is None:
-            return
-
-        self._cancel_next_refresh = async_track_point_in_time(
-            self.hass, self._refresh_price, next_change
-        )
-
-    def _refresh_price(self) -> None:
-        """Refresh the price sensor."""
-        self.async_write_ha_state()
-        self._schedule_refresh()
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value reported by the sensor."""
-        if self.coordinator.data is None:
-            return None
-        now = datetime.now(tz=self._timezone)
-        cost = self.coordinator.data.tariff.cost_at(now)
-        return cost / 100.0 if cost is not None else None

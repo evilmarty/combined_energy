@@ -2,19 +2,15 @@
   "config": {
     "step": {
       "user": {
-        "description": "Define the API parameters for this installation",
+        "description": "Connect to your local Combined Energy bridge",
         "data": {
           "name": "The name of this installation",
-          "username": "Email or Mobile Number",
-          "password": "Password",
-          "installation_id": "Combined Energy Installation-ID"
+          "host": "Bridge host or IP address"
         }
       }
     },
     "error": {
-      "installation_not_accessible": "Permission denied for Installation ID",
       "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error"
     },
     "abort": {
@@ -125,14 +121,32 @@
       "combiner_energy_correction": {
         "name": "Energy Correction"
       },
-      "tariff_details_daily_fee": {
-        "name": "Daily Fee"
+      "system_reading_count": {
+        "name": "System Reading Count"
       },
-      "tariff_details_feed_in_cost": {
-        "name": "Feed In Cost"
+      "system_connected_devices": {
+        "name": "System Connected Devices"
       },
-      "tariff_details_cost": {
-        "name": "Cost"
+      "system_registered_devices": {
+        "name": "System Registered Devices"
+      },
+      "system_jvm_startup": {
+        "name": "System JVM Startup"
+      },
+      "system_os_startup": {
+        "name": "System OS Startup"
+      },
+      "system_plugin_startup": {
+        "name": "System Plugin Startup"
+      },
+      "system_operation_status": {
+        "name": "System Operation Status"
+      },
+      "system_operation_message": {
+        "name": "System Operation Message"
+      },
+      "system_temperature": {
+        "name": "System Temperature"
       }
     }
   }

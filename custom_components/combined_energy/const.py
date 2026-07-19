@@ -8,22 +8,28 @@ DOMAIN: Final[str] = "combined_energy"
 
 LOGGER = logging.getLogger(__package__)
 
-CURRENCY_AUD = "AUD"
-
-# Data for Combined Energy requests.
-DATA_API_CLIENT: Final[str] = "api_client"
+# Runtime data keys.
+DATA_BRIDGE_CLIENT: Final[str] = "bridge_client"
 DATA_COORDINATOR: Final[str] = "coordinator"
 
-# Config for combined energy requests.
-CONF_INSTALLATION_ID: Final[str] = "installation_id"
+# Config entry keys.
+CONF_MQTT_PASSWORD: Final[str] = "mqtt_password"
 DEFAULT_NAME: Final[str] = "Combined Energy"
 
-CONNECTIVITY_UPDATE_DELAY: Final[timedelta] = timedelta(seconds=30)
-LOG_SESSION_REFRESH_DELAY: Final[timedelta] = timedelta(minutes=10)
-READINGS_UPDATE_DELAY: Final[timedelta] = timedelta(minutes=1)
-TARIFF_DETAILS_UPDATE_DELAY: Final[timedelta] = timedelta(hours=1)
+MQTT_RECONNECT_DELAY: Final[timedelta] = timedelta(seconds=5)
+MQTT_PORT_WEBSOCKET: Final[int] = 8080
+MQTT_USERNAME_SYSTEM: Final[str] = "sys"
+MQTT_TOPIC_PREFIX: Final[str] = "cet-ecn"
+MQTT_READINGS_TOPIC_FILTER: Final[str] = "dmg/readings/#"
+READINGS_COORDINATOR_NAME: Final[str] = "readings"
 
-# Base urls for Combined Energy API
-BASE_URL_USER_ACCESS: Final[str] = "https://onwatch.combined.energy"
-BASE_URL_DATA_ACCESS: Final[str] = "https://ds20.combined.energy/data-service"
-BASE_URL_MQTT_ACCESS: Final[str] = "https://dp20.combined.energy"
+INSTALLATION_JSON_PATH: Final[str] = (
+    "/%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f"
+    "%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f"
+    "var%2fopt%2fcet%2fconfig%2finstallation%2ejson"
+)
+SYSTEM_KEY_PATH: Final[str] = (
+    "/%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f"
+    "%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f"
+    "var%2fopt%2fcet%2fconfig%2fsystem%2ekey"
+)

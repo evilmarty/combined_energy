@@ -1,11 +1,12 @@
 """API Schema model."""
 
 from datetime import UTC, datetime, timedelta
-from itertools import pairwise, zip_longest
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
+
+from custom_components.combined_energy.mqtt_parser import parse_mqtt_readings_message
 
 
 def now() -> datetime:
@@ -67,54 +68,46 @@ class ConnectionStatus(BaseModel):
 class Device(BaseModel):
     """Details of a device."""
 
-    id: int = Field(alias="deviceId")
+    id: int
     ref_name: str = Field(alias="refName")
-    name: str = Field(alias="displayName")
-    device_type: str = Field(alias="deviceType")
-    manufacturer: None | str = Field(default=None, alias="deviceManufacturer")
-    model_name: None | str = Field(default=None, alias="deviceModelName")
-    serial_number: None | str = Field(default=None, alias="deviceSerialNumber")
-    storage_device: bool = Field(alias="storageDevice")
-    supplier_device: bool = Field(default=None, alias="supplierDevice")
-    consumer_device: bool = Field(alias="consumerDevice")
+    name: str
+    device_type: str = Field(alias="type")
+    manufacturer: None | str = None
+    model_name: None | str = Field(default=None, alias="model")
+    serial_number: None | str = Field(default=None, alias="serial")
+    storage_device: bool = Field(
+        default=False,
+        alias="storage",
+    )
+    supplier_device: bool = Field(
+        default=False,
+        alias="supplier",
+    )
+    consumer_device: bool = Field(
+        default=False,
+        alias="consumer",
+    )
     status: str
-    max_power_supply: None | int = Field(default=None, alias="maxPowerSupply")
     max_power_consumption: None | int = Field(default=None, alias="maxPowerConsumption")
     category: str
-    assets: list[str] = Field(default_factory=list)
 
 
 class Installation(BaseModel):
     """Details of an installation."""
 
-    id: int = Field(alias="installationId")
-    name: str = Field(alias="installationName")
+    id: int
+    name: str
     status: str
-    source: str
-    role: str
-    read_only: bool = Field(alias="readOnly")
-    dmg_id: int = Field(alias="dmgId")
-    tags: list[str]
-
-    mqtt_account_kura: str = Field(alias="mqttAccountKura")
-    mqtt_broker_ems: str = Field(alias="mqttBrokerEms")
-
     timezone: ZoneInfo
-    street_address: str = Field(alias="streetAddress")
+    address: str
     locality: str
     state: str
     postcode: str
-
-    review_status: str = Field(alias="reviewStatus")
-    nmi: str
     phase: int
-    org_id: int = Field(alias="orgId")
-    brand: str
-
-    tariff_plan_id: int = Field(alias="tariffPlanId")
-    tariff_plan_accepted: datetime = Field(alias="tariffPlanAccepted")
+    installed: datetime
 
     devices: list[Device]
+    gateway_id: int = Field(alias="gwId")
 
 
 class Customer(BaseModel):
@@ -139,154 +132,169 @@ class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""
 
     device_id: int | None = Field(default=None, alias="deviceId")
-    range_start: datetime | None = Field(default=None, alias="rangeStart")
-    range_end: datetime | None = Field(default=None, alias="rangeEnd")
-    timestamp: list[datetime]
-    sample_seconds: None | list[int] = Field(default=None, alias="sampleSecs")
+    timestamp: datetime
+    sample_seconds: int | None = Field(default=None, alias="sampleSecs")
 
 
-class DeviceReadingsCombiner(CommonDeviceReadings):
+class SystemReading(CommonDeviceReadings):
+    """Readings for system-level status."""
+
+    device_type: Literal["SystemReading"] = Field(alias="deviceType")
+    reading_count: int | None = Field(default=None, alias="readingCount")
+    connected_devices: int | None = Field(default=None, alias="connectedDevices")
+    registered_devices: int | None = Field(default=None, alias="registeredDevices")
+    dmg_id: int | None = Field(default=None, alias="dmgId")
+    jvm_startup: int | None = Field(default=None, alias="jvmStartup")
+    os_startup: int | None = Field(default=None, alias="osStartup")
+    plugin_startup: int | None = Field(default=None, alias="pluginStartup")
+    operation_status: str | None = Field(default=None, alias="operationStatus")
+    operation_message: str | None = Field(default=None, alias="operationMessage")
+    state: dict[str, Any] | None = None
+    meta: dict[str, Any] | None = None
+    temperature: float | None = None
+
+
+class CombinerReading(CommonDeviceReadings):
     """Readings for the Combiner device."""
 
-    device_type: Literal["COMBINER"] = Field(alias="deviceType")
+    device_type: Literal["CombinerReading"] = Field(alias="deviceType")
 
-    energy_supplied: None | list[None | float] = Field(
-        default=None, alias="energySupplied"
+    energy_supplied: float | None = Field(
+        default=None, alias="energySuppliedTotal"
     )
-    energy_supplied_solar: None | list[None | float] = Field(
+    energy_supplied_solar: float | None = Field(
         default=None, alias="energySuppliedSolar"
     )
-    energy_supplied_battery: None | list[None | float] = Field(
+    energy_supplied_battery: float | None = Field(
         default=None, alias="energySuppliedBattery"
     )
-    energy_supplied_grid: None | list[None | float] = Field(
+    energy_supplied_grid: float | None = Field(
         default=None, alias="energySuppliedGrid"
     )
-    energy_consumed: None | list[None | float] = Field(
-        default=None, alias="energyConsumed"
+    energy_consumed: float | None = Field(
+        default=None, alias="energyConsumedTotal"
     )
-    energy_consumed_solar: None | list[None | float] = Field(
-        default=None, alias="energyConsumedSolar"
+    energy_consumed_solar: float | None = Field(
+        default=None, alias="energyConsumedTotalSolar"
     )
-    energy_consumed_battery: None | list[None | float] = Field(
-        default=None, alias="energyConsumedBattery"
+    energy_consumed_battery: float | None = Field(
+        default=None, alias="energyConsumedTotalBattery"
     )
-    energy_consumed_grid: None | list[None | float] = Field(
-        default=None, alias="energyConsumedGrid"
+    energy_consumed_grid: float | None = Field(
+        default=None, alias="energyConsumedTotalGrid"
     )
-    energy_correction: None | list[None | float] = Field(
+    energy_correction: float | None = Field(
         default=None, alias="energyCorrection"
     )
-    temperature: None | list[None | float] = Field(default=None)
+    temperature: float | None = Field(default=None)
 
 
-class DeviceReadingsSolarPV(CommonDeviceReadings):
+class SolarPvReading(CommonDeviceReadings):
     """Readings for the Solar PV device."""
 
-    device_type: Literal["SOLAR_PV"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(
+    device_type: Literal["SolarPvReading"] = Field(alias="deviceType")
+    operation_status: str | None = Field(
         default=None, alias="operationStatus"
     )
-    operation_message: None | list[None | str] = Field(
+    operation_message: str | None = Field(
         default=None, alias="operationMessage"
     )
 
-    energy_supplied: None | list[None | float] = Field(
+    energy_supplied: float | None = Field(
         default=None, alias="energySupplied"
     )
 
 
-class DeviceReadingsGridMeter(CommonDeviceReadings):
+class GridMeterReading(CommonDeviceReadings):
     """Readings for the Grid Meter device."""
 
-    device_type: Literal["GRID_METER"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(
+    device_type: Literal["GridMeterReading"] = Field(alias="deviceType")
+    operation_status: str | None = Field(
         default=None, alias="operationStatus"
     )
-    operation_message: None | list[None | str] = Field(
+    operation_message: str | None = Field(
         default=None, alias="operationMessage"
     )
 
-    energy_supplied: None | list[None | float] = Field(
+    energy_supplied: float | None = Field(
         default=None, alias="energySupplied"
     )
-    energy_consumed: None | list[None | float] = Field(
+    energy_consumed: float | None = Field(
         default=None, alias="energyConsumed"
     )
-    energy_consumed_solar: None | list[None | float] = Field(
+    energy_consumed_solar: float | None = Field(
         default=None, alias="energyConsumedSolar"
     )
-    energy_consumed_battery: None | list[None | float] = Field(
+    energy_consumed_battery: float | None = Field(
         default=None, alias="energyConsumedBattery"
     )
-    power_factor_a: None | list[None | float] = Field(
+    power_factor_a: float | None = Field(
         default=None, alias="powerFactorA"
     )
-    power_factor_b: None | list[None | float] = Field(
+    power_factor_b: float | None = Field(
         default=None, alias="powerFactorB"
     )
-    power_factor_c: None | list[None | float] = Field(
+    power_factor_c: float | None = Field(
         default=None, alias="powerFactorC"
     )
-    voltage_a: None | list[None | float] = Field(default=None, alias="voltageA")
-    voltage_b: None | list[None | float] = Field(default=None, alias="voltageB")
-    voltage_c: None | list[None | float] = Field(default=None, alias="voltageC")
+    voltage_a: float | None = Field(default=None, alias="voltageA")
+    voltage_b: float | None = Field(default=None, alias="voltageB")
+    voltage_c: float | None = Field(default=None, alias="voltageC")
 
 
-class DeviceReadingsGenericConsumer(CommonDeviceReadings):
+class GenericConsumerReading(CommonDeviceReadings):
     """Readings for a Generic consumer device."""
 
-    device_type: Literal["GENERIC_CONSUMER"] = Field(alias="deviceType")
-    operation_status: None | list[None | str] = Field(
+    device_type: Literal["GenericConsumerReading"] = Field(alias="deviceType")
+    operation_status: str | None = Field(
         default=None, alias="operationStatus"
     )
-    operation_message: None | list[None | str] = Field(
+    operation_message: str | None = Field(
         default=None, alias="operationMessage"
     )
 
-    energy_consumed: None | list[None | float] = Field(
+    energy_consumed: float | None = Field(
         default=None, alias="energyConsumed"
     )
-    energy_consumed_solar: None | list[None | float] = Field(
+    energy_consumed_solar: float | None = Field(
         default=None, alias="energyConsumedSolar"
     )
-    energy_consumed_battery: None | list[None | float] = Field(
+    energy_consumed_battery: float | None = Field(
         default=None, alias="energyConsumedBattery"
     )
-    energy_consumed_grid: None | list[None | float] = Field(
+    energy_consumed_grid: float | None = Field(
         default=None, alias="energyConsumedGrid"
     )
 
 
-class DeviceReadingsWaterHeater(DeviceReadingsGenericConsumer):
+class WaterHeaterReading(GenericConsumerReading):
     """Readings for a Water heater device."""
 
-    device_type: Literal["WATER_HEATER"] = Field(alias="deviceType")
+    device_type: Literal["WaterHeaterReading"] = Field(alias="deviceType")
 
-    available_energy: None | list[None | float] = Field(alias="availableEnergy")
-    max_energy: None | list[None | float] = Field(default=None, alias="maxEnergy")
-    temp_sensor1: None | list[None | float] = Field(default=None, alias="s1")
-    temp_sensor2: None | list[None | float] = Field(default=None, alias="s2")
-    temp_sensor3: None | list[None | float] = Field(default=None, alias="s3")
-    temp_sensor4: None | list[None | float] = Field(default=None, alias="s4")
-    temp_sensor5: None | list[None | float] = Field(default=None, alias="s5")
-    temp_sensor6: None | list[None | float] = Field(default=None, alias="s6")
+    available_energy: float | None = Field(alias="currentAmenityLitres")
+    max_energy: float | None = Field(default=None, alias="maxAmenityLitres")
+    temp_sensor1: float | None = Field(default=None, alias="s1")
+    temp_sensor2: float | None = Field(default=None, alias="s2")
+    temp_sensor3: float | None = Field(default=None, alias="s3")
+    temp_sensor4: float | None = Field(default=None, alias="s4")
+    temp_sensor5: float | None = Field(default=None, alias="s5")
+    temp_sensor6: float | None = Field(default=None, alias="s6")
 
     @property
-    def available_percentage(self) -> None | list[None | float]:
+    def available_percentage(self) -> float | None:
         """Get the available percentage of the water heater."""
         if self.available_energy is None or self.max_energy is None:
             return None
-        return [
-            ((a / m) * 100 if m > 0 else 0) if m is not None and a is not None else None
-            for a, m in zip_longest(self.available_energy, self.max_energy)
-        ]
+        if self.max_energy <= 0:
+            return 0
+        return (self.available_energy / self.max_energy) * 100
 
 
-class DeviceReadingsEnergyBalance(DeviceReadingsGenericConsumer):
+class EnergyBalanceReading(GenericConsumerReading):
     """Readings for the Energy Balance device."""
 
-    device_type: Literal["ENERGY_BALANCE"] = Field(alias="deviceType")
+    device_type: Literal["EnergyBalanceReading"] = Field(alias="deviceType")
 
 
 class DeviceReadingsUnknown(BaseModel):
@@ -298,12 +306,13 @@ class DeviceReadingsUnknown(BaseModel):
 ReadingsDevices = Annotated[
     Annotated[
         (
-            DeviceReadingsCombiner
-            | DeviceReadingsSolarPV
-            | DeviceReadingsGridMeter
-            | DeviceReadingsGenericConsumer
-            | DeviceReadingsWaterHeater
-            | DeviceReadingsEnergyBalance
+            SystemReading
+            | CombinerReading
+            | SolarPvReading
+            | GridMeterReading
+            | GenericConsumerReading
+            | WaterHeaterReading
+            | EnergyBalanceReading
         ),
         Field(discriminator="device_type"),
     ]
@@ -315,102 +324,37 @@ ReadingsDevices = Annotated[
 class Readings(BaseModel):
     """Reading history data."""
 
-    range_start: datetime = Field(alias="rangeStart")
-    range_end: datetime = Field(alias="rangeEnd")
-    range_count: int = Field(alias="rangeCount")
-    seconds: int
-    installation_id: int = Field(alias="installationId")
-    server_time: datetime = Field(alias="serverTime")
+    period_duration_secs: int = Field(alias="periodDurationSecs")
+    period_end: datetime = Field(alias="periodEnd")
 
     devices: list[ReadingsDevices]
 
+    @classmethod
+    def from_mqtt_message(cls, payload: bytes | str | dict[str, Any]) -> "Readings":
+        """Parse MQTT payload and convert it into the Readings model."""
+        message = (
+            payload
+            if isinstance(payload, dict)
+            else parse_mqtt_readings_message(payload)
+        )
+        range_end = datetime.fromtimestamp(int(message["periodEnd"]), tz=UTC)
+        period_duration_secs = int(message["periodDurationSecs"])
+        devices: list[dict[str, Any]] = []
+        for record_type, rows in message["records"].items():
+            for row in rows:
+                devices.append(
+                    {
+                        "deviceType": record_type,
+                        "timestamp": range_end,
+                        "sampleSecs": period_duration_secs,
+                        **row,
+                    }
+                )
 
-class TariffGroup(BaseModel):
-    """Details of a tariff group."""
-
-    days: list[int]
-    months: list[int]
-    periods: list[int]
-    costs: list[float]
-
-    def cost_at(self, dt: datetime) -> float | None:
-        """Get the cost at a specific datetime."""
-        if dt.month in self.months and dt.isoweekday() in self.days:
-            ranges = pairwise(self.periods)
-            for i, range_ in enumerate(ranges):
-                if range_[0] <= dt.hour < range_[1]:
-                    return self.costs[i]
-            # Handle the last period
-            return self.costs[-1]
-        return None
-
-    def next_cost_change(self, dt: datetime) -> datetime | None:
-        """Get the next datetime when the cost changes."""
-        if not self.days or not self.months or not self.periods:
-            return None
-
-        # Set the time to the start of the current hour, as cost changes only occur at the start of an hour
-        dt = dt.replace(minute=0, second=0, microsecond=0)
-        # Find the next hour in the current day
-        if dt.month in self.months and dt.isoweekday() in self.days:
-            if (p := next((p for p in self.periods if p > dt.hour), None)) is not None:
-                return dt.replace(hour=p)
-        # Use the first period of the next day
-        dt = dt.replace(hour=self.periods[0]) + timedelta(days=1)
-        # Find the next day in the current and consecutive months
-        while dt.month in self.months:
-            if dt.isoweekday() in self.days:
-                return dt
-            dt += timedelta(days=1)
-        # Check if there are more months in the current year, otherwise move to the next year
-        if (m := next((m for m in self.months if m > dt.month), None)) is not None:
-            dt = dt.replace(month=m, day=1)
-        else:
-            dt = dt.replace(year=dt.year + 1, month=self.months[0], day=1)
-        # Find the next day in the current and consecutive months, again
-        while dt.month in self.months:
-            if dt.isoweekday() in self.days:
-                return dt
-            dt += timedelta(days=1)
-        # If we get here, there are no more valid days in the next year, so we return None
-        return None
-
-
-class Tariff(BaseModel):
-    """Details of a tariff."""
-
-    dnsp_code: str = Field(alias="dnspCode")
-    state: str
-    retailer_code: str = Field(alias="retailerCode")
-    retailer_name: str = Field(alias="retailerName")
-    plan_id: int = Field(alias="planId")
-    plan_name: str = Field(alias="planName")
-    tariff_type: str = Field(alias="tariffType")
-    source: str
-    daily_fee: float = Field(alias="dailyFee")
-    feed_in_cost: float = Field(alias="feedInCost")
-    as_at: datetime | None = Field(default=None, alias="asAt")
-    updated: datetime
-
-    groups: list[TariffGroup]
-
-    def cost_at(self, dt: datetime) -> float | None:
-        """Get the cost at a specific datetime."""
-        for group in self.groups:
-            if (cost := group.cost_at(dt)) is not None:
-                return cost
-        return None
-
-    def next_cost_change(self, dt: datetime) -> datetime | None:
-        """Get the next datetime when the cost changes."""
-        next_changes = [group.next_cost_change(dt) for group in self.groups]
-        next_changes = [change for change in next_changes if change is not None]
-        return min(next_changes) if next_changes else None
-
-
-class TariffDetails(BaseModel):
-    """Details of a tariff."""
-
-    status: str
-    plan_id: int = Field(alias="planId")
-    tariff: Tariff
+        return cls.model_validate(
+            {
+                "periodDurationSecs": period_duration_secs,
+                "periodEnd": range_end,
+                "devices": devices,
+            }
+        )

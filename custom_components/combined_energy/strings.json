@@ -2,19 +2,15 @@
   "config": {
     "step": {
       "user": {
-        "description": "Define the API parameters for this installation",
+        "description": "Connect to your local Combined Energy bridge",
         "data": {
           "name": "The name of this installation",
-          "username": "Email or Mobile Number",
-          "password": "[%key:common::config_flow::data::password%]",
-          "installation_id": "Combined Energy Installation-ID"
+          "host": "Bridge host or IP address"
         }
       }
     },
     "error": {
-      "installation_not_accessible": "Permission denied for Installation ID",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
@@ -109,15 +105,6 @@
       },
       "combiner_energy_correction": {
         "name": "Energy Correction"
-      },
-      "tariff_details_daily_fee": {
-        "name": "Daily Fee"
-      },
-      "tariff_details_feed_in_cost": {
-        "name": "Feed In Cost"
-      },
-      "tariff_details_cost": {
-        "name": "Cost"
       }
     }
   }
