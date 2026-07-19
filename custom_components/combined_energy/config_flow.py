@@ -12,12 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
 from .bridge import BridgeBootstrap, BridgeBootstrapError, validate_bridge_host
-from .const import (
-    CONF_STALE_ENTITY_CLEANUP_PENDING,
-    DEFAULT_NAME,
-    DOMAIN,
-    LOGGER,
-)
+from .const import CONF_STALE_ENTITY_CLEANUP_PENDING, DEFAULT_NAME, DOMAIN, LOGGER
 from .sensor import cleanup_stale_sensor_entities
 
 

@@ -28,7 +28,7 @@ async def test_async_step_user_sets_unique_id_from_installation_id(fixture_path)
     flow = CombinedEnergyConfigFlow()
     flow.hass = MagicMock()
     flow.async_set_unique_id = AsyncMock()
-    flow._abort_if_unique_id_configured = MagicMock()
+    flow._abort_if_unique_id_configured = MagicMock()  # noqa: SLF001
 
     with patch(
         "custom_components.combined_energy.config_flow.validate_bridge_host",
@@ -61,7 +61,7 @@ async def test_async_step_user_keeps_explicit_default_name(fixture_path):
     flow = CombinedEnergyConfigFlow()
     flow.hass = MagicMock()
     flow.async_set_unique_id = AsyncMock()
-    flow._abort_if_unique_id_configured = MagicMock()
+    flow._abort_if_unique_id_configured = MagicMock()  # noqa: SLF001
 
     with patch(
         "custom_components.combined_energy.config_flow.validate_bridge_host",
@@ -95,7 +95,7 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
     flow.hass.config_entries.async_update_entry = MagicMock()
     flow.hass.config_entries.async_reload = AsyncMock()
     flow.async_set_unique_id = AsyncMock()
-    flow._abort_if_unique_id_mismatch = MagicMock()
+    flow._abort_if_unique_id_mismatch = MagicMock()  # noqa: SLF001
     entry = MagicMock()
     entry.title = "Combined Energy"
     entry.entry_id = "entry-1"
@@ -103,7 +103,7 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
         CONF_HOST: "old-bridge.local",
         CONF_STALE_ENTITY_CLEANUP_PENDING: True,
     }
-    flow._get_reconfigure_entry = MagicMock(return_value=entry)
+    flow._get_reconfigure_entry = MagicMock(return_value=entry)  # noqa: SLF001
 
     with patch(
         "custom_components.combined_energy.config_flow.validate_bridge_host",
@@ -119,7 +119,7 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
         )
 
     flow.async_set_unique_id.assert_awaited_once_with(str(installation.id))
-    flow._abort_if_unique_id_mismatch.assert_called_once_with()
+    flow._abort_if_unique_id_mismatch.assert_called_once_with()  # noqa: SLF001
     cleanup_stale_sensor_entities.assert_called_once_with(
         flow.hass, entry, installation
     )

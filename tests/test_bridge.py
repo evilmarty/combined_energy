@@ -136,7 +136,7 @@ async def test_message_handler_routes_readings_topic(fixture_path):
 
     topic = client.topic("dmg/readings/stream")
     client.subscribe(client.topic("dmg/readings/#"), listener)
-    await client._handle_message(topic, readings_payload)
+    await client._handle_message(topic, readings_payload)  # noqa: SLF001
 
     assert received == [(topic, readings_payload)]
 
@@ -162,7 +162,7 @@ async def test_message_handler_ignores_non_readings_topic(fixture_path):
         received.append((topic, payload))
 
     client.subscribe(client.topic("dmg/readings/#"), listener)
-    await client._handle_message(
+    await client._handle_message(  # noqa: SLF001
         client.topic("dmg/events/state"),
         readings_payload,
     )

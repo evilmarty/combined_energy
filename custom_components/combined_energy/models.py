@@ -341,15 +341,15 @@ class Readings(BaseModel):
         period_duration_secs = int(message["periodDurationSecs"])
         devices: list[dict[str, Any]] = []
         for record_type, rows in message["records"].items():
-            for row in rows:
-                devices.append(
-                    {
-                        "deviceType": record_type,
-                        "timestamp": range_end,
-                        "sampleSecs": period_duration_secs,
-                        **row,
-                    }
-                )
+            devices.extend(
+                {
+                    "deviceType": record_type,
+                    "timestamp": range_end,
+                    "sampleSecs": period_duration_secs,
+                    **row,
+                }
+                for row in rows
+            )
 
         return cls.model_validate(
             {
