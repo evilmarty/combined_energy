@@ -1145,6 +1145,7 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_exported_solar",
@@ -1155,6 +1156,7 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_exported_battery",
@@ -1165,6 +1167,7 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_exported_grid",
@@ -1175,6 +1178,7 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_stored",
