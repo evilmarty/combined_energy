@@ -91,12 +91,19 @@ async def _get_text(hass: HomeAssistant, host: str, path: str) -> str:
 
 async def _load_installation(hass: HomeAssistant, host: str) -> Installation:
     """Load and validate installation payload from bridge."""
+    LOGGER.debug("Loading installation payload from bridge host %s", host)
     payload = await _get_json(hass, host, INSTALLATION_JSON_PATH)
     try:
         installation = Installation.model_validate(payload)
         _ = installation.gateway_id
     except (ValueError, ValidationError) as err:
         raise BridgeBootstrapError(str(err)) from err
+    LOGGER.debug(
+        "Loaded installation id=%s gateway_id=%s name=%s",
+        installation.id,
+        installation.gateway_id,
+        installation.name,
+    )
     return installation
 
 
@@ -165,7 +172,13 @@ class MqttBridgeClient:
     async def async_start(self) -> None:
         """Start MQTT client and ensure first connection succeeds."""
         if self._mqtt_client is not None:
+            LOGGER.debug("MQTT client already started for host %s", self.bootstrap.bridge_host)
             return
+        LOGGER.debug(
+            "Starting MQTT client for host=%s gateway_id=%s",
+            self.bootstrap.bridge_host,
+            self.bootstrap.installation.gateway_id,
+        )
         self._connected_event.clear()
         self._startup_error = None
 
@@ -194,6 +207,11 @@ class MqttBridgeClient:
                 keepalive=60,
             )
             client.loop_start()
+            LOGGER.debug(
+                "MQTT connect initiated host=%s port=%s",
+                self.bootstrap.bridge_host,
+                MQTT_PORT_WEBSOCKET,
+            )
         except Exception as err:
             raise BridgeConnectionError(
                 f"Failed to initialize MQTT broker client: {err}"
@@ -208,6 +226,7 @@ class MqttBridgeClient:
 
     async def async_stop(self) -> None:
         """Stop MQTT client loop."""
+        LOGGER.debug("Stopping MQTT client for host %s", self.bootstrap.bridge_host)
         if self._mqtt_client is not None:
             with contextlib.suppress(Exception):
                 self._mqtt_client.disconnect()
@@ -229,6 +248,11 @@ class MqttBridgeClient:
     ) -> None:
         """Handle broker connect callback."""
         if reason_code == 0:
+            LOGGER.debug(
+                "Connected to MQTT broker host=%s; subscribing to %s topic patterns",
+                self.bootstrap.bridge_host,
+                len(self._subscriptions),
+            )
             for topic_pattern, _ in self._subscriptions:
                 result = client.subscribe(topic_pattern)
                 if result[0] != mqtt_client.MQTT_ERR_SUCCESS:
@@ -238,12 +262,14 @@ class MqttBridgeClient:
                     )
                     self._loop.call_soon_threadsafe(self._connected_event.set)
                     return
+                LOGGER.debug("Subscribed to MQTT topic pattern %s", topic_pattern)
             self._loop.call_soon_threadsafe(self._connected_event.set)
             return
         else:
             self._startup_error = BridgeConnectionError(
                 f"Connection refused: {reason_code}"
             )
+            LOGGER.debug("MQTT broker connection refused: %s", reason_code)
         self._loop.call_soon_threadsafe(self._connected_event.set)
 
     def _on_disconnect(
@@ -255,6 +281,7 @@ class MqttBridgeClient:
         ____: mqtt_client.Properties | None = None,
     ) -> None:
         """Handle broker disconnect callback."""
+        LOGGER.debug("MQTT bridge disconnected with code %s", reason_code)
         if reason_code != 0:
             LOGGER.warning("MQTT bridge disconnected with code %s", reason_code)
 
@@ -269,6 +296,11 @@ class MqttBridgeClient:
         if isinstance(topic, bytes):
             topic = topic.decode()
         payload = bytes(message.payload)
+        LOGGER.debug(
+            "Received MQTT message topic=%s payload_bytes=%s",
+            topic,
+            len(payload),
+        )
         self._loop.call_soon_threadsafe(self._schedule_message, topic, payload)
 
     def _schedule_message(self, topic: str, payload: bytes) -> None:
@@ -279,12 +311,16 @@ class MqttBridgeClient:
 
     async def _handle_message(self, topic: str, payload: bytes) -> None:
         """Route and handle incoming MQTT payload by topic."""
+        matched = 0
         for topic_pattern, callback in tuple(self._subscriptions):
             if not _topic_matches(topic_pattern, topic):
                 continue
+            matched += 1
             result = callback(topic, payload)
             if asyncio.iscoroutine(result):
                 await result
+        if matched == 0:
+            LOGGER.debug("No MQTT subscription callbacks matched topic=%s", topic)
 
 
 def _topic_matches(topic_pattern: str, topic: str) -> bool:

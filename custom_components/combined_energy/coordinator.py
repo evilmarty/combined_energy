@@ -39,6 +39,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             always_update=True,
         )
         self.client = client
+        LOGGER.debug("Subscribing readings coordinator to topic %s", self._readings_topic)
         self.client.subscribe(self._readings_topic, self._handle_readings_message)
 
     @property
@@ -52,6 +53,11 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             return self.data
         raise UpdateFailed("No MQTT readings available yet")
 
-    def _handle_readings_message(self, _: str, payload: bytes) -> None:
+    def _handle_readings_message(self, topic: str, payload: bytes) -> None:
         """Parse and publish new readings from MQTT payloads."""
+        LOGGER.debug(
+            "Processing MQTT readings message topic=%s payload_bytes=%s",
+            topic,
+            len(payload),
+        )
         self.async_set_updated_data(Readings.from_mqtt_message(payload))
