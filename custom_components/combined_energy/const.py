@@ -16,7 +16,7 @@ DATA_COORDINATOR: Final[str] = "coordinator"
 CONF_MQTT_PASSWORD: Final[str] = "mqtt_password"
 DEFAULT_NAME: Final[str] = "Combined Energy"
 
-MQTT_RECONNECT_DELAY: Final[timedelta] = timedelta(seconds=5)
+MQTT_RECONNECT_DELAY: Final[timedelta] = timedelta(seconds=10)
 MQTT_PORT_WEBSOCKET: Final[int] = 8080
 MQTT_USERNAME_SYSTEM: Final[str] = "sys"
 MQTT_TOPIC_PREFIX: Final[str] = "cet-ecn"

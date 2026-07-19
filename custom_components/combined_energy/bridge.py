@@ -119,9 +119,7 @@ async def _create_bootstrap(
     )
 
 
-async def validate_bridge_host(
-    hass: HomeAssistant, host: str
-) -> BridgeBootstrap:
+async def validate_bridge_host(hass: HomeAssistant, host: str) -> BridgeBootstrap:
     """Validate host and return resolved bridge bootstrap data."""
     system_key = await _get_text(hass, host, SYSTEM_KEY_PATH)
     return await _create_bootstrap(hass, host, system_key)
@@ -151,7 +149,9 @@ class MqttBridgeClient:
         self._startup_error: Exception | None = None
 
     def subscribe(
-        self, topic_pattern: str, callback: Callable[[str, bytes], Awaitable[None] | None]
+        self,
+        topic_pattern: str,
+        callback: Callable[[str, bytes], Awaitable[None] | None],
     ) -> None:
         """Register a topic subscription callback."""
         self._subscriptions.append((topic_pattern, callback))
@@ -172,7 +172,9 @@ class MqttBridgeClient:
     async def async_start(self) -> None:
         """Start MQTT client and ensure first connection succeeds."""
         if self._mqtt_client is not None:
-            LOGGER.debug("MQTT client already started for host %s", self.bootstrap.bridge_host)
+            LOGGER.debug(
+                "MQTT client already started for host %s", self.bootstrap.bridge_host
+            )
             return
         LOGGER.debug(
             "Starting MQTT client for host=%s gateway_id=%s",
@@ -281,9 +283,10 @@ class MqttBridgeClient:
         ____: mqtt_client.Properties | None = None,
     ) -> None:
         """Handle broker disconnect callback."""
-        LOGGER.debug("MQTT bridge disconnected with code %s", reason_code)
         if reason_code != 0:
             LOGGER.warning("MQTT bridge disconnected with code %s", reason_code)
+        else:
+            LOGGER.debug("MQTT bridge disconnected with code %s", reason_code)
 
     def _on_message(
         self,
@@ -338,7 +341,9 @@ def _topic_matches(topic_pattern: str, topic: str) -> bool:
     return len(topic_levels) == len(pattern_levels)
 
 
-async def get_bridge_client(hass: HomeAssistant, data: dict[str, Any]) -> MqttBridgeClient:
+async def get_bridge_client(
+    hass: HomeAssistant, data: dict[str, Any]
+) -> MqttBridgeClient:
     """Create bridge client from config entry data."""
     bootstrap = await bootstrap_from_entry_data(hass, data)
     return MqttBridgeClient(hass, bootstrap)

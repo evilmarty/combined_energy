@@ -61,6 +61,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_battery",
@@ -71,6 +72,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_grid",
@@ -210,6 +212,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_battery",
@@ -220,6 +223,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_factor_a",
@@ -406,6 +410,7 @@ COMBINER_DEVICE = Device(
     status="",
     category="",
 )
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

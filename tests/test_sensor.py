@@ -171,6 +171,33 @@ class TestCombinedEnergyReadingsSensor:
 
         assert sensor.native_value == 1.5
 
+    def test_native_value_energy_consumed_solar_is_absolute(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """Solar consumed energy values are exposed as absolute values."""
+        description = CombinedEnergySensorDescription(
+            key="energy_consumed_solar",
+            translation_key="grid_meter_energy_consumed_solar",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            absolute=True,
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, installation.devices[3], description, mock_coordinator
+        )
+        sensor.hass = mock_hass
+
+        grid_meter = next(
+            device
+            for device in mock_coordinator.data.devices
+            if isinstance(device, GridMeterReading)
+        )
+        grid_meter.energy_consumed_solar = -2.75
+
+        assert sensor.native_value == 2.75
+
     def test_system_sensor_reads_system_reading(self, installation, mock_coordinator, mock_hass):
         """System sensor should resolve values from SystemReading."""
         system_device = Device(
