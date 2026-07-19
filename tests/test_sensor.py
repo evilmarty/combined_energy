@@ -114,6 +114,63 @@ class TestCombinedEnergyReadingsSensor:
         grid_meter.energy_supplied = 3.0
         assert sensor.native_value == 3.0
 
+    def test_native_value_energy_consumed_is_absolute(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """Energy consumed values are exposed as absolute values."""
+        description = CombinedEnergySensorDescription(
+            key="energy_consumed",
+            translation_key="grid_meter_energy_consumed",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            absolute=True,
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, installation.devices[3], description, mock_coordinator
+        )
+        sensor.hass = mock_hass
+
+        grid_meter = next(
+            device
+            for device in mock_coordinator.data.devices
+            if isinstance(device, GridMeterReading)
+        )
+        grid_meter.energy_consumed = -4.2
+
+        assert sensor.native_value == 4.2
+
+    def test_native_value_energy_consumed_grid_is_absolute(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """Energy to-grid values are exposed as absolute values."""
+        water_heater_device = next(
+            device for device in installation.devices if device.device_type == "WATER_HEATER"
+        )
+        description = CombinedEnergySensorDescription(
+            key="energy_consumed_grid",
+            translation_key="energy_consumed_grid",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            absolute=True,
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, water_heater_device, description, mock_coordinator
+        )
+        sensor.hass = mock_hass
+
+        water_heater = next(
+            device
+            for device in mock_coordinator.data.devices
+            if getattr(device, "device_type", None) == "WaterHeaterReading"
+        )
+        water_heater.energy_consumed_grid = -1.5
+
+        assert sensor.native_value == 1.5
+
     def test_system_sensor_reads_system_reading(self, installation, mock_coordinator, mock_hass):
         """System sensor should resolve values from SystemReading."""
         system_device = Device(

@@ -38,6 +38,8 @@ from .coordinator import CombinedEnergyReadingsCoordinator
 class CombinedEnergySensorDescription(SensorEntityDescription, frozen_or_thawed=True):
     """Describes Combined Energy sensor entity."""
 
+    absolute: bool = False
+
 
 # Common sensors for all consumer devices
 SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
@@ -48,6 +50,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_solar",
@@ -78,6 +81,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
 ]
 SENSOR_DESCRIPTIONS = {
@@ -195,6 +199,7 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_solar",
@@ -524,7 +529,10 @@ class CombinedEnergyReadingsSensor(
     @property
     def native_value(self) -> int | float | str | datetime | None:
         """Return the state of the sensor."""
-        return self._raw_value
+        value = self._raw_value
+        if self.entity_description.absolute and isinstance(value, int | float):
+            return abs(value)
+        return value
 
 
 class GenericSensor(CombinedEnergyReadingsSensor):
