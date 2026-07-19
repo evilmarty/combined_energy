@@ -20,8 +20,6 @@ class Login(BaseModel):
     status: str
     expire_minutes: int = Field(alias="expireMins")
     jwt: str
-
-    # Capture time login was created
     created: datetime = Field(default_factory=now)
 
     @property
@@ -132,15 +130,15 @@ class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""
 
     device_id: int | None = Field(default=None, alias="deviceId")
-    timestamp: datetime
-    sample_seconds: int | None = Field(default=None, alias="sampleSecs")
+    period_end: int = Field(alias="periodEnd")
+    period_end_str: str | None = Field(default=None, alias="periodEndStr")
+    reading_count: int | None = Field(default=None, alias="readingCount")
 
 
 class SystemReading(CommonDeviceReadings):
     """Readings for system-level status."""
 
     device_type: Literal["SystemReading"] = Field(alias="deviceType")
-    reading_count: int | None = Field(default=None, alias="readingCount")
     connected_devices: int | None = Field(default=None, alias="connectedDevices")
     registered_devices: int | None = Field(default=None, alias="registeredDevices")
     dmg_id: int | None = Field(default=None, alias="dmgId")
@@ -308,8 +306,6 @@ class Readings(BaseModel):
             devices.extend(
                 {
                     "deviceType": record_type,
-                    "timestamp": range_end,
-                    "sampleSecs": period_duration_secs,
                     **row,
                 }
                 for row in rows

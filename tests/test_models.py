@@ -185,8 +185,9 @@ class TestWaterHeaterReading:
         return WaterHeaterReading(
             deviceId=3,
             deviceType="WaterHeaterReading",
-            timestamp=datetime(2025, 4, 15, 20, 27, 55, tzinfo=UTC),
-            sampleSecs=5,
+            periodEnd=1744748875,
+            periodEndStr="25-04-15 2027 +0000",
+            readingCount=5,
             operationStatus="CONNECTED_ACTIVE",
             operationMessage=None,
             energyConsumed=0.71111,
