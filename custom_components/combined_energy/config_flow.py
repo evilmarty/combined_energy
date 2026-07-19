@@ -85,7 +85,9 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(str(bootstrap.installation.id))
                 self._abort_if_unique_id_mismatch()
                 if entry.data.get(CONF_STALE_ENTITY_CLEANUP_PENDING):
-                    cleanup_stale_sensor_entities(self.hass, entry, bootstrap.installation)
+                    cleanup_stale_sensor_entities(
+                        self.hass, entry, bootstrap.installation
+                    )
                 ir.async_delete_issue(
                     self.hass,
                     DOMAIN,

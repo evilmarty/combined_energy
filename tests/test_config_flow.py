@@ -105,12 +105,15 @@ async def test_async_step_reconfigure_updates_entry_with_validated_host(fixture_
     }
     flow._get_reconfigure_entry = MagicMock(return_value=entry)  # noqa: SLF001
 
-    with patch(
-        "custom_components.combined_energy.config_flow.validate_bridge_host",
-        new=AsyncMock(return_value=bootstrap),
-    ), patch(
-        "custom_components.combined_energy.config_flow.cleanup_stale_sensor_entities"
-    ) as cleanup_stale_sensor_entities:
+    with (
+        patch(
+            "custom_components.combined_energy.config_flow.validate_bridge_host",
+            new=AsyncMock(return_value=bootstrap),
+        ),
+        patch(
+            "custom_components.combined_energy.config_flow.cleanup_stale_sensor_entities"
+        ) as cleanup_stale_sensor_entities,
+    ):
         result = await flow.async_step_reconfigure(
             {
                 CONF_NAME: "Combined Energy Updated",

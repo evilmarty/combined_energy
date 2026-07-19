@@ -112,7 +112,9 @@ class TestInstallation:
         assert installation.name == payload["name"]
         assert installation.gateway_id == payload["gwId"]
         assert installation.timezone == ZoneInfo(payload["timezone"])
-        assert any(device.device_type == "WATER_HEATER" for device in installation.devices)
+        assert any(
+            device.device_type == "WATER_HEATER" for device in installation.devices
+        )
 
     def test_installation_defaults_missing_device_flags(self, fixture_path):
         """Default missing storage/consumer flags to false."""
@@ -155,15 +157,22 @@ class TestReadings:
         assert readings.period_duration_secs == 5
         assert len(readings.devices) == 8
         assert isinstance(readings.devices[0], SystemReading)
-        assert any(isinstance(device, WaterHeaterReading) for device in readings.devices)
+        assert any(
+            isinstance(device, WaterHeaterReading) for device in readings.devices
+        )
         assert any(isinstance(device, GridMeterReading) for device in readings.devices)
         assert any(isinstance(device, SolarPvReading) for device in readings.devices)
-        assert any(isinstance(device, EnergyBalanceReading) for device in readings.devices)
-        assert sum(
-            1
-            for device in readings.devices
-            if getattr(device, "device_type", None) == "GenericConsumerReading"
-        ) == 2
+        assert any(
+            isinstance(device, EnergyBalanceReading) for device in readings.devices
+        )
+        assert (
+            sum(
+                1
+                for device in readings.devices
+                if getattr(device, "device_type", None) == "GenericConsumerReading"
+            )
+            == 2
+        )
         assert any(isinstance(device, CombinerReading) for device in readings.devices)
 
 

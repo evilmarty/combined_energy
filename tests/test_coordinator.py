@@ -63,7 +63,9 @@ async def test_coordinator_updates_from_mqtt_listener(
     example_log_payload: bytes,
 ):
     """Coordinator parses subscribed readings messages."""
-    coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
+    coordinator = CombinedEnergyReadingsCoordinator(
+        mock_hass, bridge_client, mock_entry
+    )
     assert coordinator.data is None
 
     coordinator._handle_readings_message(  # noqa: SLF001

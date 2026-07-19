@@ -26,7 +26,9 @@ from homeassistant.core import HomeAssistant
 @pytest.fixture
 def installation(fixture_path):
     """Fixture for Installation model."""
-    return Installation.model_validate_json((fixture_path / "installation.json").read_text())
+    return Installation.model_validate_json(
+        (fixture_path / "installation.json").read_text()
+    )
 
 
 @pytest.fixture
@@ -146,7 +148,9 @@ class TestCombinedEnergyReadingsSensor:
     ):
         """Energy to-grid values are exposed as absolute values."""
         water_heater_device = next(
-            device for device in installation.devices if device.device_type == "WATER_HEATER"
+            device
+            for device in installation.devices
+            if device.device_type == "WATER_HEATER"
         )
         description = CombinedEnergySensorDescription(
             key="energy_consumed_grid",
@@ -198,7 +202,9 @@ class TestCombinedEnergyReadingsSensor:
 
         assert sensor.native_value == 2.75
 
-    def test_system_sensor_reads_system_reading(self, installation, mock_coordinator, mock_hass):
+    def test_system_sensor_reads_system_reading(
+        self, installation, mock_coordinator, mock_hass
+    ):
         """System sensor should resolve values from SystemReading."""
         system_device = Device(
             id=0,
@@ -282,6 +288,15 @@ class TestCombinedEnergyReadingsSensor:
         system_sensor.hass = mock_hass
         combiner_sensor.hass = mock_hass
 
-        assert system_sensor.unique_id == f"install_{installation.id}-device_0-reading_count"
-        assert combiner_sensor.unique_id == f"install_{installation.id}-device_0-energy_supplied"
-        assert system_sensor.device_info["identifiers"] != combiner_sensor.device_info["identifiers"]
+        assert (
+            system_sensor.unique_id
+            == f"install_{installation.id}-device_0-reading_count"
+        )
+        assert (
+            combiner_sensor.unique_id
+            == f"install_{installation.id}-device_0-energy_supplied"
+        )
+        assert (
+            system_sensor.device_info["identifiers"]
+            != combiner_sensor.device_info["identifiers"]
+        )

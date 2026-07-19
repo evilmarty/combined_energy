@@ -26,7 +26,9 @@ async def test_validate_bridge_host_returns_bootstrap(aiohttp_raw_server, fixtur
 
     async def handler(request):
         if request.path.endswith("/var/opt/cet/config/installation.json"):
-            return web.Response(text=installation_payload, content_type="application/json")
+            return web.Response(
+                text=installation_payload, content_type="application/json"
+            )
         if request.path.endswith("/var/opt/cet/config/system.key"):
             return web.Response(text="bridge-secret")
         return web.Response(status=404)
@@ -48,7 +50,9 @@ async def test_validate_bridge_host_returns_bootstrap(aiohttp_raw_server, fixtur
 
 
 @pytest.mark.asyncio
-async def test_validate_bridge_host_raises_when_no_gwid(aiohttp_raw_server, fixture_path):
+async def test_validate_bridge_host_raises_when_no_gwid(
+    aiohttp_raw_server, fixture_path
+):
     """Fail validation when gwId is missing."""
 
     installation_payload = (fixture_path / "installation.json").read_text()
@@ -89,7 +93,9 @@ async def test_bootstrap_from_entry_data_refreshes_installation(
 
     async def handler(request):
         if request.path.endswith("/var/opt/cet/config/installation.json"):
-            return web.Response(text=installation_payload, content_type="application/json")
+            return web.Response(
+                text=installation_payload, content_type="application/json"
+            )
         return web.Response(status=404)
 
     server = await aiohttp_raw_server(handler)

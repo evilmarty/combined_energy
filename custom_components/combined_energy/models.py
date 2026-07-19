@@ -159,21 +159,15 @@ class CombinerReading(CommonDeviceReadings):
 
     device_type: Literal["CombinerReading"] = Field(alias="deviceType")
 
-    energy_supplied: float | None = Field(
-        default=None, alias="energySuppliedTotal"
-    )
+    energy_supplied: float | None = Field(default=None, alias="energySuppliedTotal")
     energy_supplied_solar: float | None = Field(
         default=None, alias="energySuppliedSolar"
     )
     energy_supplied_battery: float | None = Field(
         default=None, alias="energySuppliedBattery"
     )
-    energy_supplied_grid: float | None = Field(
-        default=None, alias="energySuppliedGrid"
-    )
-    energy_consumed: float | None = Field(
-        default=None, alias="energyConsumedTotal"
-    )
+    energy_supplied_grid: float | None = Field(default=None, alias="energySuppliedGrid")
+    energy_consumed: float | None = Field(default=None, alias="energyConsumedTotal")
     energy_consumed_solar: float | None = Field(
         default=None, alias="energyConsumedTotalSolar"
     )
@@ -183,9 +177,7 @@ class CombinerReading(CommonDeviceReadings):
     energy_consumed_grid: float | None = Field(
         default=None, alias="energyConsumedTotalGrid"
     )
-    energy_correction: float | None = Field(
-        default=None, alias="energyCorrection"
-    )
+    energy_correction: float | None = Field(default=None, alias="energyCorrection")
     temperature: float | None = Field(default=None)
 
 
@@ -193,50 +185,30 @@ class SolarPvReading(CommonDeviceReadings):
     """Readings for the Solar PV device."""
 
     device_type: Literal["SolarPvReading"] = Field(alias="deviceType")
-    operation_status: str | None = Field(
-        default=None, alias="operationStatus"
-    )
-    operation_message: str | None = Field(
-        default=None, alias="operationMessage"
-    )
+    operation_status: str | None = Field(default=None, alias="operationStatus")
+    operation_message: str | None = Field(default=None, alias="operationMessage")
 
-    energy_supplied: float | None = Field(
-        default=None, alias="energySupplied"
-    )
+    energy_supplied: float | None = Field(default=None, alias="energySupplied")
 
 
 class GridMeterReading(CommonDeviceReadings):
     """Readings for the Grid Meter device."""
 
     device_type: Literal["GridMeterReading"] = Field(alias="deviceType")
-    operation_status: str | None = Field(
-        default=None, alias="operationStatus"
-    )
-    operation_message: str | None = Field(
-        default=None, alias="operationMessage"
-    )
+    operation_status: str | None = Field(default=None, alias="operationStatus")
+    operation_message: str | None = Field(default=None, alias="operationMessage")
 
-    energy_supplied: float | None = Field(
-        default=None, alias="energySupplied"
-    )
-    energy_consumed: float | None = Field(
-        default=None, alias="energyConsumed"
-    )
+    energy_supplied: float | None = Field(default=None, alias="energySupplied")
+    energy_consumed: float | None = Field(default=None, alias="energyConsumed")
     energy_consumed_solar: float | None = Field(
         default=None, alias="energyConsumedSolar"
     )
     energy_consumed_battery: float | None = Field(
         default=None, alias="energyConsumedBattery"
     )
-    power_factor_a: float | None = Field(
-        default=None, alias="powerFactorA"
-    )
-    power_factor_b: float | None = Field(
-        default=None, alias="powerFactorB"
-    )
-    power_factor_c: float | None = Field(
-        default=None, alias="powerFactorC"
-    )
+    power_factor_a: float | None = Field(default=None, alias="powerFactorA")
+    power_factor_b: float | None = Field(default=None, alias="powerFactorB")
+    power_factor_c: float | None = Field(default=None, alias="powerFactorC")
     voltage_a: float | None = Field(default=None, alias="voltageA")
     voltage_b: float | None = Field(default=None, alias="voltageB")
     voltage_c: float | None = Field(default=None, alias="voltageC")
@@ -246,25 +218,17 @@ class GenericConsumerReading(CommonDeviceReadings):
     """Readings for a Generic consumer device."""
 
     device_type: Literal["GenericConsumerReading"] = Field(alias="deviceType")
-    operation_status: str | None = Field(
-        default=None, alias="operationStatus"
-    )
-    operation_message: str | None = Field(
-        default=None, alias="operationMessage"
-    )
+    operation_status: str | None = Field(default=None, alias="operationStatus")
+    operation_message: str | None = Field(default=None, alias="operationMessage")
 
-    energy_consumed: float | None = Field(
-        default=None, alias="energyConsumed"
-    )
+    energy_consumed: float | None = Field(default=None, alias="energyConsumed")
     energy_consumed_solar: float | None = Field(
         default=None, alias="energyConsumedSolar"
     )
     energy_consumed_battery: float | None = Field(
         default=None, alias="energyConsumedBattery"
     )
-    energy_consumed_grid: float | None = Field(
-        default=None, alias="energyConsumedGrid"
-    )
+    energy_consumed_grid: float | None = Field(default=None, alias="energyConsumedGrid")
 
 
 class WaterHeaterReading(GenericConsumerReading):

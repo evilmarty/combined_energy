@@ -39,7 +39,9 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             always_update=True,
         )
         self.client = client
-        LOGGER.debug("Subscribing readings coordinator to topic %s", self._readings_topic)
+        LOGGER.debug(
+            "Subscribing readings coordinator to topic %s", self._readings_topic
+        )
         self.client.subscribe(self._readings_topic, self._handle_readings_message)
 
     @property
