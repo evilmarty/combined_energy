@@ -9,10 +9,7 @@ from custom_components.combined_energy.bridge import BridgeBootstrap, MqttBridge
 from custom_components.combined_energy.coordinator import (
     CombinedEnergyReadingsCoordinator,
 )
-from custom_components.combined_energy.models import (
-    Installation,
-    Readings,
-)
+from custom_components.combined_energy.models import Installation, Readings
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 

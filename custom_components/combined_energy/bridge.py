@@ -267,11 +267,10 @@ class MqttBridgeClient:
                 LOGGER.debug("Subscribed to MQTT topic pattern %s", topic_pattern)
             self._loop.call_soon_threadsafe(self._connected_event.set)
             return
-        else:
-            self._startup_error = BridgeConnectionError(
-                f"Connection refused: {reason_code}"
-            )
-            LOGGER.debug("MQTT broker connection refused: %s", reason_code)
+        self._startup_error = BridgeConnectionError(
+            f"Connection refused: {reason_code}"
+        )
+        LOGGER.debug("MQTT broker connection refused: %s", reason_code)
         self._loop.call_soon_threadsafe(self._connected_event.set)
 
     def _on_disconnect(

@@ -14,11 +14,11 @@ from custom_components.combined_energy.models import (
     Device,
     EnergyBalanceReading,
     GridMeterReading,
-    SolarPvReading,
     Installation,
     Login,
     LogSession,
     Readings,
+    SolarPvReading,
     SystemReading,
     WaterHeaterReading,
 )
