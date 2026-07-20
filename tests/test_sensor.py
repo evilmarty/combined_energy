@@ -21,6 +21,7 @@ from custom_components.combined_energy.sensor import (
 )
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfEnergy
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.core import HomeAssistant
 
 
@@ -293,3 +294,25 @@ class TestCombinedEnergyReadingsSensor:
             system_sensor.device_info["identifiers"]
             != combiner_sensor.device_info["identifiers"]
         )
+
+    def test_device_info_includes_connection_details(
+        self, installation, mock_coordinator, mock_hass
+    ):
+        """Device info should include network connections when available."""
+        device = installation.devices[1]
+        description = CombinedEnergySensorDescription(
+            key="energy_supplied",
+            translation_key="energy_supplied",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, device, description, mock_coordinator
+        )
+        sensor.hass = mock_hass
+
+        assert sensor.device_info["connections"] == {
+            (CONNECTION_NETWORK_MAC, "A1:B2:C3:D4:E5:F6")
+        }

@@ -30,7 +30,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -1355,8 +1355,18 @@ class CombinedEnergyReadingsSensor(
 
         identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
+        connections = None
+        if (
+            device.connection_details is not None
+            and device.connection_details.connection is not None
+            and device.connection_details.connection.mac is not None
+        ):
+            connections = {
+                (CONNECTION_NETWORK_MAC, device.connection_details.connection.mac)
+            }
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, identifier)},
+            connections=connections,
             manufacturer=device.manufacturer,
             serial_number=device.serial_number,
             model=device.model_name,
