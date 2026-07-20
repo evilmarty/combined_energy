@@ -1107,6 +1107,7 @@ SENSOR_DESCRIPTIONS = {
         CombinedEnergySensorDescription(
             key="operation_message",
             translation_key="system_operation_message",
+            entity_registry_enabled_default=False,
         ),
         CombinedEnergySensorDescription(
             key="temperature",
@@ -1115,6 +1116,7 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             suggested_display_precision=2,
+            entity_registry_enabled_default=False,
         ),
     ],
     "GENERIC_CONSUMER": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
