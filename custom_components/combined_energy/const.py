@@ -22,6 +22,8 @@ MQTT_PORT_WEBSOCKET: Final[int] = 8080
 MQTT_USERNAME_SYSTEM: Final[str] = "sys"
 MQTT_TOPIC_PREFIX: Final[str] = "cet-ecn"
 MQTT_READINGS_TOPIC_FILTER: Final[str] = "dmg/readings/#"
+MQTT_COMMAND_LOGGING_START_TOPIC: Final[str] = "dmg/command/logging/start"
+READINGS_WATCHDOG_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 READINGS_COORDINATOR_NAME: Final[str] = "readings"
 
 INSTALLATION_DEVICE_TYPE_GATEWAY: Final[str] = "GATEWAY"

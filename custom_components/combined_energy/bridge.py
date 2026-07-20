@@ -17,6 +17,7 @@ from custom_components.combined_energy.const import (
     CONF_MQTT_PASSWORD,
     INSTALLATION_JSON_PATH,
     LOGGER,
+    MQTT_COMMAND_LOGGING_START_TOPIC,
     MQTT_PORT_WEBSOCKET,
     MQTT_RECONNECT_DELAY,
     MQTT_TOPIC_PREFIX,
@@ -168,6 +169,20 @@ class MqttBridgeClient:
         """Build a full MQTT topic from a relative topic path."""
         gateway_id = self.bootstrap.installation.gateway_id
         return f"{MQTT_TOPIC_PREFIX}/{gateway_id}/{topic.lstrip('/')}"
+
+    def publish(self, topic: str, payload: str | bytes = "") -> None:
+        """Publish a payload to a topic on the MQTT bridge."""
+        if self._mqtt_client is None:
+            raise BridgeConnectionError("MQTT client is not started")
+        result = self._mqtt_client.publish(topic, payload)
+        if result[0] != mqtt_client.MQTT_ERR_SUCCESS:
+            raise BridgeConnectionError(
+                f"Publish failed for {topic}: {mqtt_client.error_string(result[0])}"
+            )
+
+    def publish_logging_start(self) -> None:
+        """Publish the logging start command to the bridge broker."""
+        self.publish(self.topic(MQTT_COMMAND_LOGGING_START_TOPIC), "")
 
     async def async_start(self) -> None:
         """Start MQTT client and ensure first connection succeeds."""

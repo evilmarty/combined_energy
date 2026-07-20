@@ -1,6 +1,7 @@
 """Tests for Combined Energy coordinators."""
 
 import asyncio
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +13,7 @@ from custom_components.combined_energy.coordinator import (
 from custom_components.combined_energy.models import Installation, Readings
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 
 @pytest.fixture
@@ -74,3 +76,43 @@ async def test_coordinator_updates_from_mqtt_listener(
     )
 
     assert coordinator.data == sample_readings
+
+
+@pytest.mark.asyncio
+async def test_watchdog_triggers_logging_start_when_no_new_messages(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+    sample_readings: Readings,
+):
+    """Scheduled update requests logging start when no fresh message arrived."""
+    coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
+    bridge_client.publish_logging_start = MagicMock()
+
+    coordinator.async_set_updated_data(sample_readings)
+    coordinator._last_message_received_at = None  # noqa: SLF001
+
+    with pytest.raises(UpdateFailed, match="Data is stale, requested logging start"):
+        await coordinator._async_update_data()  # noqa: SLF001
+
+    bridge_client.publish_logging_start.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_watchdog_skips_logging_start_when_new_message_received(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+    sample_readings: Readings,
+):
+    """Scheduled update does not request logging start when message is fresh."""
+    coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
+    bridge_client.publish_logging_start = MagicMock()
+
+    coordinator.async_set_updated_data(sample_readings)
+    coordinator._last_message_received_at = datetime.now(UTC)  # noqa: SLF001
+
+    result = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert result == sample_readings
+    bridge_client.publish_logging_start.assert_not_called()
