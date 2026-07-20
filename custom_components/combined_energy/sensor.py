@@ -141,6 +141,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement="var",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="power_reactive_last",
@@ -149,6 +150,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement="var",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="power_reactive_max",
@@ -157,6 +159,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement="var",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="power_reactive_min",
@@ -165,6 +168,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement="var",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
+        absolute=True,
     ),
 ]
 SENSOR_DESCRIPTIONS = {
@@ -226,6 +230,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_last",
@@ -235,6 +240,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_max",
@@ -244,6 +250,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_min",
@@ -253,6 +260,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_reactive_avg",
@@ -550,6 +558,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="energy_supplied_consumed",
@@ -622,6 +631,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_last",
@@ -631,6 +641,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_max",
@@ -640,6 +651,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_min",
@@ -649,6 +661,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_a_avg",
@@ -658,6 +671,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_a_last",
@@ -667,6 +681,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_a_max",
@@ -676,6 +691,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_a_min",
@@ -685,6 +701,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_b_avg",
@@ -694,6 +711,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_b_last",
@@ -703,6 +721,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_b_max",
@@ -712,6 +731,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_b_min",
@@ -721,6 +741,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_c_avg",
@@ -730,6 +751,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_c_last",
@@ -739,6 +761,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_c_max",
@@ -748,6 +771,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_c_min",
@@ -757,6 +781,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.POWER,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="power_reactive_avg",
