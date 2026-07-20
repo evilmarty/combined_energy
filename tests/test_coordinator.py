@@ -13,7 +13,6 @@ from custom_components.combined_energy.coordinator import (
 from custom_components.combined_energy.models import Installation, Readings
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 
 @pytest.fixture
@@ -85,15 +84,14 @@ async def test_watchdog_triggers_logging_start_when_no_new_messages(
     mock_entry,
     sample_readings: Readings,
 ):
-    """Scheduled update requests logging start when no fresh message arrived."""
+    """Watchdog requests logging start when no fresh message arrived."""
     coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
     bridge_client.publish_logging_start = MagicMock()
 
-    coordinator.async_set_updated_data(sample_readings)
     coordinator._last_message_received_at = None  # noqa: SLF001
+    coordinator._last_watchdog_check_at = datetime.now(UTC)  # noqa: SLF001
 
-    with pytest.raises(UpdateFailed, match="Data is stale, requested logging start"):
-        await coordinator._async_update_data()  # noqa: SLF001
+    coordinator._check_for_stale_messages()  # noqa: SLF001
 
     bridge_client.publish_logging_start.assert_called_once()
 
