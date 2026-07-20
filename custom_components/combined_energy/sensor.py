@@ -34,7 +34,13 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DATA_BRIDGE_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
+from .const import (
+    DATA_BRIDGE_CLIENT,
+    DATA_COORDINATOR,
+    DOMAIN,
+    INSTALLATION_DEVICE_TYPE_COMBINER,
+    LOGGER,
+)
 from .coordinator import CombinedEnergyReadingsCoordinator
 
 
@@ -1041,55 +1047,54 @@ SENSOR_DESCRIPTIONS = {
             entity_registry_enabled_default=False,
         ),
     ],
+    "GATEWAY": [
+        CombinedEnergySensorDescription(
+            key="reading_count",
+            translation_key="system_reading_count",
+        ),
+        CombinedEnergySensorDescription(
+            key="connected_devices",
+            translation_key="system_connected_devices",
+        ),
+        CombinedEnergySensorDescription(
+            key="registered_devices",
+            translation_key="system_registered_devices",
+        ),
+        CombinedEnergySensorDescription(
+            key="jvm_startup",
+            translation_key="system_jvm_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="os_startup",
+            translation_key="system_os_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="plugin_startup",
+            translation_key="system_plugin_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="operation_status",
+            translation_key="system_operation_status",
+        ),
+        CombinedEnergySensorDescription(
+            key="operation_message",
+            translation_key="system_operation_message",
+        ),
+        CombinedEnergySensorDescription(
+            key="temperature",
+            translation_key="system_temperature",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            suggested_display_precision=2,
+        ),
+    ],
     "GENERIC_CONSUMER": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
     "ENERGY_BALANCE": SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
 }
-
-SYSTEM_SENSOR_DESCRIPTIONS = [
-    CombinedEnergySensorDescription(
-        key="reading_count",
-        translation_key="system_reading_count",
-    ),
-    CombinedEnergySensorDescription(
-        key="connected_devices",
-        translation_key="system_connected_devices",
-    ),
-    CombinedEnergySensorDescription(
-        key="registered_devices",
-        translation_key="system_registered_devices",
-    ),
-    CombinedEnergySensorDescription(
-        key="jvm_startup",
-        translation_key="system_jvm_startup",
-        device_class=SensorDeviceClass.TIMESTAMP,
-    ),
-    CombinedEnergySensorDescription(
-        key="os_startup",
-        translation_key="system_os_startup",
-        device_class=SensorDeviceClass.TIMESTAMP,
-    ),
-    CombinedEnergySensorDescription(
-        key="plugin_startup",
-        translation_key="system_plugin_startup",
-        device_class=SensorDeviceClass.TIMESTAMP,
-    ),
-    CombinedEnergySensorDescription(
-        key="operation_status",
-        translation_key="system_operation_status",
-    ),
-    CombinedEnergySensorDescription(
-        key="operation_message",
-        translation_key="system_operation_message",
-    ),
-    CombinedEnergySensorDescription(
-        key="temperature",
-        translation_key="system_temperature",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        suggested_display_precision=2,
-    ),
-]
 
 COMBINER_SENSOR_DESCRIPTIONS = [
     *SENSOR_DESCRIPTIONS_GENERIC_CONSUMER,
@@ -1225,27 +1230,10 @@ COMBINER_SENSOR_DESCRIPTIONS = [
     ),
 ]
 
-# System isn't listed in installation devices but it is included in readings.
-SYSTEM_DEVICE = Device(
-    id=0,
-    type="SystemReading",
-    refName="",
-    name="System",
-    manufacturer=None,
-    model=None,
-    serial=None,
-    supplier=False,
-    storage=False,
-    consumer=False,
-    max_power_consumption=None,
-    status="",
-    category="",
-)
-
 # Combiner isn't a real device but it's included in the readings with all the other devices
 COMBINER_DEVICE = Device(
     id=0,
-    type="CombinerReading",
+    type=INSTALLATION_DEVICE_TYPE_COMBINER,
     refName="",
     name="Combiner",
     manufacturer=None,
@@ -1285,13 +1273,9 @@ def _sensor_unique_id(installation_id: int, device_id: int, key: str) -> str:
 def _expected_sensor_unique_ids(installation: Installation) -> set[str]:
     """Build all expected sensor unique ids for an installation."""
     expected = {
-        _sensor_unique_id(installation.id, SYSTEM_DEVICE.id, description.key)
-        for description in SYSTEM_SENSOR_DESCRIPTIONS
-    }
-    expected.update(
         _sensor_unique_id(installation.id, COMBINER_DEVICE.id, description.key)
         for description in COMBINER_SENSOR_DESCRIPTIONS
-    )
+    }
     for device in installation.devices:
         for description in SENSOR_DESCRIPTIONS.get(device.device_type, []):
             expected.add(_sensor_unique_id(installation.id, device.id, description.key))
@@ -1325,19 +1309,9 @@ def _generate_readings_sensors(
 ) -> Generator[CombinedEnergyReadingsSensor]:
     """Generate sensor entities from installed devices."""
 
-    for description in SYSTEM_SENSOR_DESCRIPTIONS:
-        sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
-        yield sensor_type(
-            installation=installation,
-            device=SYSTEM_DEVICE,
-            description=description,
-            coordinator=coordinator,
-        )
-
     # Generate sensors from descriptions for the combiner device
     for description in COMBINER_SENSOR_DESCRIPTIONS:
-        sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
-        yield sensor_type(
+        yield CombinedEnergyReadingsSensor(
             installation=installation,
             device=COMBINER_DEVICE,
             description=description,
@@ -1348,8 +1322,7 @@ def _generate_readings_sensors(
         descriptions = SENSOR_DESCRIPTIONS.get(device.device_type, [])
         # Generate sensors from descriptions for the current device type
         for description in descriptions:
-            sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
-            yield sensor_type(
+            yield CombinedEnergyReadingsSensor(
                 installation=installation,
                 device=device,
                 description=description,
@@ -1382,13 +1355,8 @@ class CombinedEnergyReadingsSensor(
 
         identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
-        device_identifier = (
-            f"{identifier}-system"
-            if device.id == 0 and device.device_type == "SystemReading"
-            else identifier
-        )
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_identifier)},
+            identifiers={(DOMAIN, identifier)},
             manufacturer=device.manufacturer,
             serial_number=device.serial_number,
             model=device.model_name,
@@ -1400,13 +1368,11 @@ class CombinedEnergyReadingsSensor(
         """Get readings for specific device."""
         if self.coordinator.data is None:
             return None
-        if self.device_id is not None:
-            for device in self.coordinator.data.devices:
-                if getattr(device, "device_id", None) == self.device_id:
-                    return device
-            return None
         for device in self.coordinator.data.devices:
-            if getattr(device, "device_type", None) == self.device_type:
+            if (
+                getattr(device, "installation_device_type", None) == self.device_type
+                and getattr(device, "device_id", None) == self.device_id
+            ):
                 return device
         return None
 
@@ -1434,34 +1400,3 @@ class CombinedEnergyReadingsSensor(
         if self.entity_description.absolute and isinstance(value, int | float):
             return abs(value)
         return value
-
-
-class GenericSensor(CombinedEnergyReadingsSensor):
-    """Sensor for generic scalar readings."""
-
-
-class EnergySensor(CombinedEnergyReadingsSensor):
-    """Sensor for energy readings."""
-
-
-class PowerSensor(CombinedEnergyReadingsSensor):
-    """Sensor for power readings."""
-
-
-class PowerFactorSensor(CombinedEnergyReadingsSensor):
-    """Sensor for power factor readings."""
-
-
-class WaterVolumeSensor(CombinedEnergyReadingsSensor):
-    """Sensor for water volume readings."""
-
-
-# Map of common device classes to specific sensor types
-SENSOR_TYPE_MAP: dict[
-    SensorDeviceClass | str | None, type[CombinedEnergyReadingsSensor]
-] = {
-    SensorDeviceClass.ENERGY: EnergySensor,
-    SensorDeviceClass.POWER: PowerSensor,
-    SensorDeviceClass.WATER: WaterVolumeSensor,
-    SensorDeviceClass.POWER_FACTOR: PowerFactorSensor,
-}

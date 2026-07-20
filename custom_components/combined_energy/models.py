@@ -7,6 +7,15 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 
 from custom_components.combined_energy.mqtt_parser import parse_mqtt_readings_message
+from custom_components.combined_energy.const import (
+    INSTALLATION_DEVICE_TYPE_ENERGY_BALANCE,
+    INSTALLATION_DEVICE_TYPE_COMBINER,
+    INSTALLATION_DEVICE_TYPE_GENERIC_CONSUMER,
+    INSTALLATION_DEVICE_TYPE_GATEWAY,
+    INSTALLATION_DEVICE_TYPE_GRID_METER,
+    INSTALLATION_DEVICE_TYPE_SOLAR_PV,
+    INSTALLATION_DEVICE_TYPE_WATER_HEATER,
+)
 
 
 def now() -> datetime:
@@ -63,6 +72,53 @@ class ConnectionStatus(BaseModel):
     since: datetime
 
 
+class DeviceConnection(BaseModel):
+    """Transport connection details for a device."""
+
+    mac: str | None = None
+    connection_type: str | None = Field(default=None, alias="type")
+    protocol: str | None = None
+    port: int | None = None
+
+
+class DeviceChannel(BaseModel):
+    """Power meter channel mapping."""
+
+    channel: int = Field(alias="ch")
+    phase: str | None = Field(default=None, alias="ph")
+
+
+class DeviceConfiguration(BaseModel):
+    """Power meter configuration details."""
+
+    name: str
+    channels: list[DeviceChannel]
+
+
+class DeviceConnectionDetails(BaseModel):
+    """Connection details for installation devices."""
+
+    connection: DeviceConnection | None = None
+    type: str | None = None
+    channel_count: int | None = Field(default=None, alias="channelCount")
+    configurations: list[DeviceConfiguration] | None = None
+    modbus_unit: int | None = Field(default=None, alias="modbusUnit")
+    supply: str | None = None
+    phase_type: str | None = Field(default=None, alias="phaseType")
+    device_reference: str | None = Field(default=None, alias="deviceReference")
+
+
+class DeviceActionDetail(BaseModel):
+    """Action metadata for a controllable device."""
+
+    allow: list[str]
+    name: str
+    label: str
+    type: str
+    accepts_null: bool = Field(alias="acceptsNull")
+    expires_to: str | None = Field(default=None, alias="expiresTo")
+
+
 class Device(BaseModel):
     """Details of a device."""
 
@@ -84,6 +140,13 @@ class Device(BaseModel):
     consumer_device: bool = Field(
         default=False,
         alias="consumer",
+    )
+    system_device: bool = Field(default=False, alias="system")
+    connection_details: DeviceConnectionDetails | None = Field(
+        default=None, alias="connectionDetails"
+    )
+    action_details: list[DeviceActionDetail] | None = Field(
+        default=None, alias="actionDetails"
     )
     status: str
     max_power_consumption: None | int = Field(default=None, alias="maxPowerConsumption")
@@ -108,24 +171,6 @@ class Installation(BaseModel):
     gateway_id: int = Field(alias="gwId")
 
 
-class Customer(BaseModel):
-    """Individual customer."""
-
-    customer_id: int = Field(alias="customerId")
-    phone: None | str = Field(default=None)
-    email: str
-    name: str
-    primary: bool
-
-
-class InstallationCustomers(BaseModel):
-    """Response from customers."""
-
-    status: str
-    installation_id: int = Field(alias="installationId")
-    customers: list[Customer]
-
-
 class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""
 
@@ -138,6 +183,7 @@ class CommonDeviceReadings(BaseModel):
 class SystemReading(CommonDeviceReadings):
     """Readings for system-level status."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_GATEWAY
     device_type: Literal["SystemReading"] = Field(alias="deviceType")
     connected_devices: int | None = Field(default=None, alias="connectedDevices")
     registered_devices: int | None = Field(default=None, alias="registeredDevices")
@@ -151,10 +197,10 @@ class SystemReading(CommonDeviceReadings):
     meta: dict[str, Any] | None = None
     temperature: float | None = None
 
-
 class CombinerReading(CommonDeviceReadings):
     """Readings for the Combiner device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_COMBINER
     device_type: Literal["CombinerReading"] = Field(alias="deviceType")
 
     energy_supplied: float | None = Field(default=None, alias="energySuppliedTotal")
@@ -200,6 +246,7 @@ class CombinerReading(CommonDeviceReadings):
 class SolarPvReading(CommonDeviceReadings):
     """Readings for the Solar PV device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_SOLAR_PV
     device_type: Literal["SolarPvReading"] = Field(alias="deviceType")
     operation_status: str | None = Field(default=None, alias="operationStatus")
     operation_message: str | None = Field(default=None, alias="operationMessage")
@@ -230,6 +277,7 @@ class SolarPvReading(CommonDeviceReadings):
 class GridMeterReading(CommonDeviceReadings):
     """Readings for the Grid Meter device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_GRID_METER
     device_type: Literal["GridMeterReading"] = Field(alias="deviceType")
     operation_status: str | None = Field(default=None, alias="operationStatus")
     operation_message: str | None = Field(default=None, alias="operationMessage")
@@ -319,6 +367,7 @@ class GridMeterReading(CommonDeviceReadings):
 class GenericConsumerReading(CommonDeviceReadings):
     """Readings for a Generic consumer device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_GENERIC_CONSUMER
     device_type: Literal["GenericConsumerReading"] = Field(alias="deviceType")
     operation_status: str | None = Field(default=None, alias="operationStatus")
     operation_message: str | None = Field(default=None, alias="operationMessage")
@@ -345,6 +394,7 @@ class GenericConsumerReading(CommonDeviceReadings):
 class WaterHeaterReading(GenericConsumerReading):
     """Readings for a Water heater device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_WATER_HEATER
     device_type: Literal["WaterHeaterReading"] = Field(alias="deviceType")
 
     amenity_water_temp: float | None = Field(default=None, alias="amenityWaterTemp")
@@ -391,6 +441,7 @@ class WaterHeaterReading(GenericConsumerReading):
 class EnergyBalanceReading(GenericConsumerReading):
     """Readings for the Energy Balance device."""
 
+    installation_device_type: str = INSTALLATION_DEVICE_TYPE_ENERGY_BALANCE
     device_type: Literal["EnergyBalanceReading"] = Field(alias="deviceType")
 
 

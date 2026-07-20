@@ -102,6 +102,37 @@ class TestInstallation:
         assert installation.gateway_id == payload["gwId"]
         assert len(installation.devices) == len(payload["devices"])
         assert installation.devices[0] == Device.model_validate(payload["devices"][0])
+        assert installation.devices[0].device_type == "GATEWAY"
+        assert installation.devices[1].connection_details is not None
+        assert installation.devices[1].connection_details.type == "PM2"
+        assert installation.devices[1].connection_details.connection is not None
+        assert (
+            installation.devices[1].connection_details.connection.protocol
+            == "MODBUS-RTU"
+        )
+        assert installation.devices[1].connection_details.configurations is not None
+        assert (
+            installation.devices[1]
+            .connection_details.configurations[0]
+            .channels[0]
+            .channel
+            == 0
+        )
+        assert installation.devices[2].connection_details is not None
+        assert installation.devices[2].action_details is not None
+        assert installation.devices[2].action_details[0].accepts_null is True
+        assert installation.devices[2].action_details[1].expires_to == "none"
+        assert installation.devices[3].connection_details is not None
+        assert installation.devices[3].connection_details.phase_type == "1"
+        assert installation.devices[3].action_details is not None
+        assert installation.devices[4].connection_details is not None
+        assert installation.devices[4].connection_details.supply == "GRD1"
+        assert installation.devices[5].connection_details is not None
+        assert installation.devices[5].connection_details.device_reference == "PM1.SOL1"
+        assert installation.devices[6].connection_details is not None
+        assert installation.devices[6].connection_details.device_reference == "PM1.GC1"
+        assert installation.devices[7].connection_details is not None
+        assert installation.devices[7].connection_details.device_reference == "PM1.AC1"
 
     def test_installation_from_bridge_payload(self, fixture_path):
         """Validate bridge installation payload directly with Installation model."""
@@ -157,6 +188,7 @@ class TestReadings:
         assert readings.period_duration_secs == 5
         assert len(readings.devices) == 8
         assert isinstance(readings.devices[0], SystemReading)
+        assert readings.devices[0].installation_device_type == "GATEWAY"
         assert any(
             isinstance(device, WaterHeaterReading) for device in readings.devices
         )

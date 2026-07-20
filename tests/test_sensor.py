@@ -206,28 +206,15 @@ class TestCombinedEnergyReadingsSensor:
     def test_system_sensor_reads_system_reading(
         self, installation, mock_coordinator, mock_hass
     ):
-        """System sensor should resolve values from SystemReading."""
-        system_device = Device(
-            id=0,
-            type="SystemReading",
-            refName="",
-            name="System",
-            manufacturer=None,
-            model=None,
-            serial=None,
-            supplier=False,
-            storage=False,
-            consumer=False,
-            max_power_consumption=None,
-            status="",
-            category="",
-        )
+        """Gateway sensor should resolve values from SystemReading."""
+        gateway_device = installation.devices[0]
+        assert gateway_device.device_type == "GATEWAY"
         description = CombinedEnergySensorDescription(
             key="reading_count",
             translation_key="system_reading_count",
         )
         sensor = CombinedEnergyReadingsSensor(
-            installation, system_device, description, mock_coordinator
+            installation, gateway_device, description, mock_coordinator
         )
         sensor.hass = mock_hass
 
@@ -238,28 +225,14 @@ class TestCombinedEnergyReadingsSensor:
         self, installation, mock_coordinator, mock_hass
     ):
         """Startup timestamp sensors should expose datetime values."""
-        system_device = Device(
-            id=0,
-            type="SystemReading",
-            refName="",
-            name="System",
-            manufacturer=None,
-            model=None,
-            serial=None,
-            supplier=False,
-            storage=False,
-            consumer=False,
-            max_power_consumption=None,
-            status="",
-            category="",
-        )
+        gateway_device = installation.devices[0]
         description = CombinedEnergySensorDescription(
             key="jvm_startup",
             translation_key="system_jvm_startup",
             device_class=SensorDeviceClass.TIMESTAMP,
         )
         sensor = CombinedEnergyReadingsSensor(
-            installation, system_device, description, mock_coordinator
+            installation, gateway_device, description, mock_coordinator
         )
         sensor.hass = mock_hass
 
@@ -271,24 +244,10 @@ class TestCombinedEnergyReadingsSensor:
         self, installation, mock_coordinator, mock_hass
     ):
         """System and combiner must not share the same HA device identifier."""
-        system_device = Device(
-            id=0,
-            type="SystemReading",
-            refName="",
-            name="System",
-            manufacturer=None,
-            model=None,
-            serial=None,
-            supplier=False,
-            storage=False,
-            consumer=False,
-            max_power_consumption=None,
-            status="",
-            category="",
-        )
+        gateway_device = installation.devices[0]
         combiner_device = Device(
             id=0,
-            type="CombinerReading",
+            type="COMBINER",
             refName="",
             name="Combiner",
             manufacturer=None,
@@ -314,7 +273,7 @@ class TestCombinedEnergyReadingsSensor:
             suggested_display_precision=2,
         )
         system_sensor = CombinedEnergyReadingsSensor(
-            installation, system_device, system_description, mock_coordinator
+            installation, gateway_device, system_description, mock_coordinator
         )
         combiner_sensor = CombinedEnergyReadingsSensor(
             installation, combiner_device, combiner_description, mock_coordinator
@@ -324,7 +283,7 @@ class TestCombinedEnergyReadingsSensor:
 
         assert (
             system_sensor.unique_id
-            == f"install_{installation.id}-device_0-reading_count"
+            == f"install_{installation.id}-device_{gateway_device.id}-reading_count"
         )
         assert (
             combiner_sensor.unique_id
