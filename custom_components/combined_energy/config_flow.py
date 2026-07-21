@@ -46,18 +46,13 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if host and (bootstrap := await self._validate_host(host)) is not None:
                 await self.async_set_unique_id(str(bootstrap.installation.id))
                 self._abort_if_unique_id_configured()
-                configured_name = (
-                    user_input.get(CONF_NAME, "").strip()
-                    or bootstrap.installation.name
-                    or DEFAULT_NAME
-                )
+                configured_name = bootstrap.installation.name or DEFAULT_NAME
                 return self.async_create_entry(
                     title=configured_name,
                     data=bootstrap.as_config_data(),
                 )
         else:
             user_input = {
-                CONF_NAME: "",
                 CONF_HOST: "",
             }
 
@@ -65,7 +60,6 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME, default=user_input[CONF_NAME]): str,
                     vol.Required(CONF_HOST, default=user_input[CONF_HOST]): str,
                 }
             ),

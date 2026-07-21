@@ -9,6 +9,7 @@ from custom_components.combined_energy.config_flow import CombinedEnergyConfigFl
 from custom_components.combined_energy.const import (
     CONF_MQTT_PASSWORD,
     CONF_STALE_ENTITY_CLEANUP_PENDING,
+    DEFAULT_NAME,
 )
 from custom_components.combined_energy.models import Installation
 from homeassistant.const import CONF_HOST, CONF_NAME
@@ -36,23 +37,22 @@ async def test_async_step_user_sets_unique_id_from_installation_id(fixture_path)
     ):
         result = await flow.async_step_user(
             {
-                CONF_NAME: "Custom Name",
                 CONF_HOST: "bridge.local",
             }
         )
 
     flow.async_set_unique_id.assert_awaited_once_with(str(installation.id))
     assert result["type"] == "create_entry"
-    assert result["title"] == "Custom Name"
+    assert result["title"] == installation.name
     assert result["data"] == bootstrap.as_config_data()
 
 
 @pytest.mark.asyncio
-async def test_async_step_user_keeps_explicit_default_name(fixture_path):
-    """Keep user-provided name even when it equals integration default."""
+async def test_async_step_user_uses_default_name_when_installation_has_no_name(fixture_path):
+    """Fallback to integration default when installation has no name."""
     installation = Installation.model_validate_json(
         (fixture_path / "installation.json").read_text()
-    )
+    ).model_copy(update={"name": ""})
     bootstrap = BridgeBootstrap(
         bridge_host="bridge.local",
         mqtt_password="bridge-secret",
@@ -69,13 +69,12 @@ async def test_async_step_user_keeps_explicit_default_name(fixture_path):
     ):
         result = await flow.async_step_user(
             {
-                CONF_NAME: "Combined Energy",
                 CONF_HOST: "bridge.local",
             }
         )
 
     assert result["type"] == "create_entry"
-    assert result["title"] == "Combined Energy"
+    assert result["title"] == DEFAULT_NAME
 
 
 @pytest.mark.asyncio
