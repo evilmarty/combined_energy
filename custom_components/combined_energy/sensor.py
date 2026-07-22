@@ -38,6 +38,8 @@ from .const import (
     DATA_BRIDGE_CLIENT,
     DATA_COORDINATOR,
     DOMAIN,
+    ENERGY_STATE_ROUNDING_DIGITS,
+    ENERGY_ZERO_EPSILON,
     INSTALLATION_DEVICE_TYPE_COMBINER,
     LOGGER,
 )
@@ -1425,6 +1427,14 @@ class CombinedEnergyReadingsSensor(
         """Indicate if the entity is available."""
         return self._raw_value is not None
 
+    def _normalize_float_value(self, value: float) -> float:
+        """Normalize energy float values to remove precision noise."""
+        if self.entity_description.device_class != SensorDeviceClass.ENERGY:
+            return value
+        if abs(value) < ENERGY_ZERO_EPSILON:
+            return 0.0
+        return round(value, ENERGY_STATE_ROUNDING_DIGITS)
+
     @property
     def native_value(self) -> int | float | str | datetime | None:
         """Return the state of the sensor."""
@@ -1435,5 +1445,7 @@ class CombinedEnergyReadingsSensor(
         ):
             return datetime.fromtimestamp(value, self._installation_timezone)
         if self.entity_description.absolute and isinstance(value, int | float):
-            return abs(value)
+            value = abs(value)
+        if isinstance(value, float):
+            return self._normalize_float_value(value)
         return value

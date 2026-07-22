@@ -118,6 +118,32 @@ class TestCombinedEnergyReadingsSensor:
         grid_meter.energy_supplied = 3.0
         assert sensor.native_value == 3.0
 
+    def test_native_value_energy_zero_clamps_precision_noise(
+        self, sensor, mock_coordinator
+    ):
+        """Tiny near-zero energy values should clamp to zero."""
+        grid_meter = next(
+            device
+            for device in mock_coordinator.data.devices
+            if isinstance(device, GridMeterReading)
+        )
+        grid_meter.energy_supplied = -0.0000000000018
+
+        assert sensor.native_value == 0.0
+
+    def test_native_value_energy_rounds_to_fixed_precision(
+        self, sensor, mock_coordinator
+    ):
+        """Energy values should be rounded to a stable precision."""
+        grid_meter = next(
+            device
+            for device in mock_coordinator.data.devices
+            if isinstance(device, GridMeterReading)
+        )
+        grid_meter.energy_supplied = 0.123456789
+
+        assert sensor.native_value == 0.123457
+
     def test_native_value_energy_consumed_is_absolute(
         self, installation, mock_coordinator, mock_hass
     ):

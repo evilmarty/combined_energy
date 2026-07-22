@@ -25,6 +25,8 @@ MQTT_READINGS_TOPIC_FILTER: Final[str] = "dmg/readings/#"
 MQTT_COMMAND_LOGGING_START_TOPIC: Final[str] = "dmg/command/logging/start"
 READINGS_WATCHDOG_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 READINGS_COORDINATOR_NAME: Final[str] = "readings"
+ENERGY_ZERO_EPSILON: Final[float] = 1e-9
+ENERGY_STATE_ROUNDING_DIGITS: Final[int] = 6
 
 INSTALLATION_DEVICE_TYPE_GATEWAY: Final[str] = "GATEWAY"
 INSTALLATION_DEVICE_TYPE_SOLAR_PV: Final[str] = "SOLAR_PV"
