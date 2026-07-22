@@ -1,13 +1,12 @@
-"""Sensors and factory for enumerating devices from the Combined Energy API."""
+"""Sensors and factory for enumerating devices from bridge MQTT readings."""
 
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
 from datetime import datetime
-from enum import Enum
 from typing import Any
 
-from custom_components.combined_energy.client import Client
+from custom_components.combined_energy.bridge import MqttBridgeClient
 from custom_components.combined_energy.models import (
     Device,
     Installation,
@@ -24,34 +23,33 @@ from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
     UnitOfTemperature,
     UnitOfVolume,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import CALLBACK_TYPE, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CURRENCY_AUD, DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN, LOGGER
-from .coordinator import (
-    CombinedEnergyCoordinator,
-    CombinedEnergyReadingsCoordinator,
-    CombinedEnergyTariffDetailsCoordinator,
+from .const import (
+    DATA_BRIDGE_CLIENT,
+    DATA_COORDINATOR,
+    DOMAIN,
+    ENERGY_STATE_ROUNDING_DIGITS,
+    ENERGY_ZERO_EPSILON,
+    INSTALLATION_DEVICE_TYPE_COMBINER,
+    LOGGER,
 )
-
-
-class Aggregation(Enum):
-    """Aggregation type for Combined Energy sensors."""
-
-    SUM = "sum"
-    LATEST = "latest"
+from .coordinator import CombinedEnergyReadingsCoordinator
 
 
 class CombinedEnergySensorDescription(SensorEntityDescription, frozen_or_thawed=True):
     """Describes Combined Energy sensor entity."""
 
-    aggregation: Aggregation = Aggregation.LATEST
+    absolute: bool = False
 
 
 # Common sensors for all consumer devices
@@ -63,7 +61,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
-        aggregation=Aggregation.SUM,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_solar",
@@ -74,7 +72,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_battery",
@@ -85,7 +83,7 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
+        absolute=True,
     ),
     CombinedEnergySensorDescription(
         key="energy_consumed_grid",
@@ -96,7 +94,83 @@ SENSOR_DESCRIPTIONS_GENERIC_CONSUMER = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_avg",
+        translation_key="power_avg",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_last",
+        translation_key="power_last",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_max",
+        translation_key="power_max",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_min",
+        translation_key="power_min",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_reactive_avg",
+        translation_key="power_reactive_avg",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="var",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_reactive_last",
+        translation_key="power_reactive_last",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="var",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_reactive_max",
+        translation_key="power_reactive_max",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="var",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="power_reactive_min",
+        translation_key="power_reactive_min",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="var",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
     ),
 ]
 SENSOR_DESCRIPTIONS = {
@@ -109,7 +183,127 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_consumed",
+            translation_key="solar_pv_energy_supplied_consumed",
+            icon="mdi:home-lightning-bolt",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_exported",
+            translation_key="solar_pv_energy_supplied_exported",
+            icon="mdi:transmission-tower-export",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_stored",
+            translation_key="solar_pv_energy_supplied_stored",
+            icon="mdi:home-battery",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="max_power_production",
+            translation_key="solar_pv_max_power_production",
+            icon="mdi:solar-power-variant",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_avg",
+            translation_key="solar_pv_power_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_last",
+            translation_key="solar_pv_power_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_max",
+            translation_key="solar_pv_power_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_min",
+            translation_key="solar_pv_power_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_avg",
+            translation_key="solar_pv_power_reactive_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_last",
+            translation_key="solar_pv_power_reactive_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_max",
+            translation_key="solar_pv_power_reactive_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_min",
+            translation_key="solar_pv_power_reactive_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="requested_power",
+            translation_key="solar_pv_requested_power",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
         ),
     ],
     "WATER_HEATER": [
@@ -135,6 +329,114 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfVolume.LITERS,
             device_class=SensorDeviceClass.WATER,
             suggested_display_precision=2,
+        ),
+        CombinedEnergySensorDescription(
+            key="amenity_water_temp",
+            translation_key="water_heater_amenity_water_temp",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="cumulative_charge_energy",
+            translation_key="water_heater_cumulative_charge_energy",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="cumulative_discharge_seconds",
+            translation_key="water_heater_cumulative_discharge_seconds",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement="s",
+            suggested_display_precision=0,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="estimated_flow_rate",
+            translation_key="water_heater_estimated_flow_rate",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="external_inlet_temperature",
+            translation_key="water_heater_external_inlet_temperature",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="external_outlet_temperature",
+            translation_key="water_heater_external_outlet_temperature",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="inlet_temperature",
+            translation_key="water_heater_inlet_temperature",
+            icon="mdi:thermometer-water",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="max_energy_estimate",
+            translation_key="water_heater_max_energy_estimate",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="max_power_consumption",
+            translation_key="water_heater_max_power_consumption",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="min_amenity_litres",
+            translation_key="water_heater_min_amenity_litres",
+            native_unit_of_measurement=UnitOfVolume.LITERS,
+            device_class=SensorDeviceClass.WATER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="optimal_amenity_litres",
+            translation_key="water_heater_optimal_amenity_litres",
+            native_unit_of_measurement=UnitOfVolume.LITERS,
+            device_class=SensorDeviceClass.WATER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="state_of_charge",
+            translation_key="water_heater_state_of_charge",
+            native_unit_of_measurement=PERCENTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="state_of_energy",
+            translation_key="water_heater_state_of_energy",
+            native_unit_of_measurement=PERCENTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
         ),
         CombinedEnergySensorDescription(
             key="temp_sensor1",
@@ -206,7 +508,6 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed",
@@ -216,7 +517,7 @@ SENSOR_DESCRIPTIONS = {
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
-            aggregation=Aggregation.SUM,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_solar",
@@ -227,7 +528,7 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
-            aggregation=Aggregation.SUM,
+            absolute=True,
         ),
         CombinedEnergySensorDescription(
             key="energy_consumed_battery",
@@ -238,7 +539,379 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
-            aggregation=Aggregation.SUM,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_consumed_grid",
+            translation_key="grid_meter_energy_consumed_grid",
+            icon="mdi:transmission-tower",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_nett",
+            translation_key="grid_meter_energy_nett",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_consumed",
+            translation_key="grid_meter_energy_supplied_consumed",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_exported",
+            translation_key="grid_meter_energy_supplied_exported",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="energy_supplied_stored",
+            translation_key="grid_meter_energy_supplied_stored",
+            state_class=SensorStateClass.TOTAL,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="frequency_avg",
+            translation_key="grid_meter_frequency_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfFrequency.HERTZ,
+            device_class=SensorDeviceClass.FREQUENCY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="frequency_max",
+            translation_key="grid_meter_frequency_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfFrequency.HERTZ,
+            device_class=SensorDeviceClass.FREQUENCY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="frequency_min",
+            translation_key="grid_meter_frequency_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfFrequency.HERTZ,
+            device_class=SensorDeviceClass.FREQUENCY,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="max_power_production",
+            translation_key="grid_meter_max_power_production",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_avg",
+            translation_key="grid_meter_power_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_last",
+            translation_key="grid_meter_power_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_max",
+            translation_key="grid_meter_power_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_min",
+            translation_key="grid_meter_power_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_a_avg",
+            translation_key="grid_meter_power_a_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_a_last",
+            translation_key="grid_meter_power_a_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_a_max",
+            translation_key="grid_meter_power_a_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_a_min",
+            translation_key="grid_meter_power_a_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_b_avg",
+            translation_key="grid_meter_power_b_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_b_last",
+            translation_key="grid_meter_power_b_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_b_max",
+            translation_key="grid_meter_power_b_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_b_min",
+            translation_key="grid_meter_power_b_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_c_avg",
+            translation_key="grid_meter_power_c_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_c_last",
+            translation_key="grid_meter_power_c_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_c_max",
+            translation_key="grid_meter_power_c_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_c_min",
+            translation_key="grid_meter_power_c_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            absolute=True,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_avg",
+            translation_key="grid_meter_power_reactive_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_last",
+            translation_key="grid_meter_power_reactive_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_max",
+            translation_key="grid_meter_power_reactive_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_min",
+            translation_key="grid_meter_power_reactive_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_a_avg",
+            translation_key="grid_meter_power_reactive_a_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_a_last",
+            translation_key="grid_meter_power_reactive_a_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_a_max",
+            translation_key="grid_meter_power_reactive_a_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_a_min",
+            translation_key="grid_meter_power_reactive_a_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_b_avg",
+            translation_key="grid_meter_power_reactive_b_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_b_last",
+            translation_key="grid_meter_power_reactive_b_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_b_max",
+            translation_key="grid_meter_power_reactive_b_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_b_min",
+            translation_key="grid_meter_power_reactive_b_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_c_avg",
+            translation_key="grid_meter_power_reactive_c_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_c_last",
+            translation_key="grid_meter_power_reactive_c_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_c_max",
+            translation_key="grid_meter_power_reactive_c_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="power_reactive_c_min",
+            translation_key="grid_meter_power_reactive_c_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="var",
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
         ),
         CombinedEnergySensorDescription(
             key="power_factor_a",
@@ -275,8 +948,80 @@ SENSOR_DESCRIPTIONS = {
             device_class=SensorDeviceClass.VOLTAGE,
         ),
         CombinedEnergySensorDescription(
+            key="voltage_a_avg",
+            translation_key="grid_meter_voltage_a_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=2,
+            device_class=SensorDeviceClass.VOLTAGE,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_a_last",
+            translation_key="grid_meter_voltage_a_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=2,
+            device_class=SensorDeviceClass.VOLTAGE,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_a_max",
+            translation_key="grid_meter_voltage_a_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=2,
+            device_class=SensorDeviceClass.VOLTAGE,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_a_min",
+            translation_key="grid_meter_voltage_a_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=2,
+            device_class=SensorDeviceClass.VOLTAGE,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
             key="voltage_b",
             translation_key="grid_meter_voltage_b",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_b_avg",
+            translation_key="grid_meter_voltage_b_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_b_last",
+            translation_key="grid_meter_voltage_b_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_b_max",
+            translation_key="grid_meter_voltage_b_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_b_min",
+            translation_key="grid_meter_voltage_b_min",
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             device_class=SensorDeviceClass.VOLTAGE,
@@ -289,6 +1034,89 @@ SENSOR_DESCRIPTIONS = {
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_c_avg",
+            translation_key="grid_meter_voltage_c_avg",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_c_last",
+            translation_key="grid_meter_voltage_c_last",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_c_max",
+            translation_key="grid_meter_voltage_c_max",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="voltage_c_min",
+            translation_key="grid_meter_voltage_c_min",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+        ),
+    ],
+    "GATEWAY": [
+        CombinedEnergySensorDescription(
+            key="reading_count",
+            translation_key="system_reading_count",
+        ),
+        CombinedEnergySensorDescription(
+            key="connected_devices",
+            translation_key="system_connected_devices",
+        ),
+        CombinedEnergySensorDescription(
+            key="registered_devices",
+            translation_key="system_registered_devices",
+        ),
+        CombinedEnergySensorDescription(
+            key="jvm_startup",
+            translation_key="system_jvm_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="os_startup",
+            translation_key="system_os_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="plugin_startup",
+            translation_key="system_plugin_startup",
+            device_class=SensorDeviceClass.TIMESTAMP,
+        ),
+        CombinedEnergySensorDescription(
+            key="operation_status",
+            translation_key="system_operation_status",
+        ),
+        CombinedEnergySensorDescription(
+            key="operation_message",
+            translation_key="system_operation_message",
+            entity_registry_enabled_default=False,
+        ),
+        CombinedEnergySensorDescription(
+            key="temperature",
+            translation_key="system_temperature",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
         ),
@@ -306,7 +1134,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_solar",
@@ -317,7 +1144,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_battery",
@@ -328,7 +1154,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_supplied_grid",
@@ -339,7 +1164,6 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
     ),
     CombinedEnergySensorDescription(
         key="energy_correction",
@@ -350,48 +1174,107 @@ COMBINER_SENSOR_DESCRIPTIONS = [
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        aggregation=Aggregation.SUM,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_exported",
+        translation_key="combiner_energy_exported",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_exported_solar",
+        translation_key="combiner_energy_exported_solar",
+        icon="mdi:solar-power",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_exported_battery",
+        translation_key="combiner_energy_exported_battery",
+        icon="mdi:home-battery",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_exported_grid",
+        translation_key="combiner_energy_exported_grid",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        absolute=True,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_stored",
+        translation_key="combiner_energy_stored",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_stored_solar",
+        translation_key="combiner_energy_stored_solar",
+        icon="mdi:solar-power",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_stored_battery",
+        translation_key="combiner_energy_stored_battery",
+        icon="mdi:home-battery",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    CombinedEnergySensorDescription(
+        key="energy_stored_grid",
+        translation_key="combiner_energy_stored_grid",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
 ]
 
 # Combiner isn't a real device but it's included in the readings with all the other devices
 COMBINER_DEVICE = Device(
-    deviceId=0,
-    deviceType="COMBINER",
+    id=0,
+    type=INSTALLATION_DEVICE_TYPE_COMBINER,
     refName="",
-    displayName="Combiner",
-    deviceManufacturer=None,
-    deviceModelName=None,
-    deviceSerialNumber=None,
-    supplierDevice=False,
-    storageDevice=False,
-    consumerDevice=False,
-    maxPowerSupply=None,
-    maxPowerConsumption=None,
+    name="Combiner",
+    manufacturer=None,
+    model=None,
+    serial=None,
+    supplier=False,
+    storage=False,
+    consumer=False,
+    max_power_consumption=None,
     status="",
     category="",
 )
-
-SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
-    CombinedEnergySensorDescription(
-        key="daily_fee",
-        translation_key="tariff_details_daily_fee",
-        icon="mdi:cash-sync",
-        state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
-        suggested_display_precision=2,
-    ),
-    CombinedEnergySensorDescription(
-        key="feed_in_cost",
-        translation_key="tariff_details_feed_in_cost",
-        icon="mdi:cash-plus",
-        state_class=SensorStateClass.TOTAL,
-        native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
-        suggested_display_precision=2,
-    ),
-]
 
 
 async def async_setup_entry(
@@ -401,25 +1284,52 @@ async def async_setup_entry(
 ) -> None:
     """Set up sensors."""
 
-    client: Client = hass.data[DOMAIN][entry.entry_id][DATA_API_CLIENT]
-    coordinator: CombinedEnergyCoordinator = hass.data[DOMAIN][entry.entry_id][
+    client: MqttBridgeClient = hass.data[DOMAIN][entry.entry_id][DATA_BRIDGE_CLIENT]
+    coordinator: CombinedEnergyReadingsCoordinator = hass.data[DOMAIN][entry.entry_id][
         DATA_COORDINATOR
     ]
-    installation = await client.installation()
+    installation = client.bootstrap.installation
 
     LOGGER.info("Setting up Combined Energy sensors")
-    async_add_entities(_generate_sensors(installation, coordinator))
+    async_add_entities(_generate_readings_sensors(installation, coordinator))
 
 
-def _generate_sensors(
-    installation: Installation,
-    coordinator: CombinedEnergyCoordinator,
-) -> Generator[SensorEntity]:
-    """Generate sensor entities from installed devices."""
-    yield from _generate_readings_sensors(installation, coordinator.readings)
-    yield from _generate_tariff_details_sensors(
-        installation, coordinator.tariff_details
-    )
+def _sensor_unique_id(installation_id: int, device_id: int, key: str) -> str:
+    """Build sensor unique id."""
+    return f"install_{installation_id}-device_{device_id}-{key}"
+
+
+def _expected_sensor_unique_ids(installation: Installation) -> set[str]:
+    """Build all expected sensor unique ids for an installation."""
+    expected = {
+        _sensor_unique_id(installation.id, COMBINER_DEVICE.id, description.key)
+        for description in COMBINER_SENSOR_DESCRIPTIONS
+    }
+    for device in installation.devices:
+        for description in SENSOR_DESCRIPTIONS.get(device.device_type, []):
+            expected.add(_sensor_unique_id(installation.id, device.id, description.key))
+    return expected
+
+
+def cleanup_stale_sensor_entities(
+    hass: HomeAssistant, entry: ConfigEntry, installation: Installation
+) -> None:
+    """Remove stale sensor entities no longer produced after reconfigure."""
+    expected = _expected_sensor_unique_ids(installation)
+    unique_id_prefix = f"install_{installation.id}-"
+    registry = er.async_get(hass)
+
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if (
+            entity.unique_id.startswith(unique_id_prefix)
+            and entity.unique_id not in expected
+        ):
+            LOGGER.debug(
+                "Removing stale entity during reconfigure %s (%s)",
+                entity.entity_id,
+                entity.unique_id,
+            )
+            registry.async_remove(entity.entity_id)
 
 
 def _generate_readings_sensors(
@@ -430,8 +1340,7 @@ def _generate_readings_sensors(
 
     # Generate sensors from descriptions for the combiner device
     for description in COMBINER_SENSOR_DESCRIPTIONS:
-        sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
-        yield sensor_type(
+        yield CombinedEnergyReadingsSensor(
             installation=installation,
             device=COMBINER_DEVICE,
             description=description,
@@ -442,8 +1351,7 @@ def _generate_readings_sensors(
         descriptions = SENSOR_DESCRIPTIONS.get(device.device_type, [])
         # Generate sensors from descriptions for the current device type
         for description in descriptions:
-            sensor_type = SENSOR_TYPE_MAP.get(description.device_class, GenericSensor)
-            yield sensor_type(
+            yield CombinedEnergyReadingsSensor(
                 installation=installation,
                 device=device,
                 description=description,
@@ -451,23 +1359,10 @@ def _generate_readings_sensors(
             )
 
 
-def _generate_tariff_details_sensors(
-    installation: Installation,
-    coordinator: CombinedEnergyTariffDetailsCoordinator,
-) -> Generator[CombinedEnergyTariffSensor]:
-    """Generate sensor entities from tariff details."""
-    if coordinator.data is not None:
-        yield PriceSensor(installation=installation, coordinator=coordinator)
-    for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS:
-        yield CombinedEnergyTariffSensor(
-            installation=installation, coordinator=coordinator, description=description
-        )
-
-
 class CombinedEnergyReadingsSensor(
     CoordinatorEntity[CombinedEnergyReadingsCoordinator], SensorEntity
 ):
-    """Representation of a Combined Energy API reading energy sensor."""
+    """Representation of a Combined Energy bridge reading sensor."""
 
     entity_description: CombinedEnergySensorDescription
     _attr_has_entity_name = True
@@ -484,12 +1379,23 @@ class CombinedEnergyReadingsSensor(
 
         self.device_id = device.id if device.id != 0 else None
         self.device_type = device.device_type
+        self._installation_timezone = installation.timezone
         self.entity_description = description
 
         identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
+        connections = None
+        if (
+            device.connection_details is not None
+            and device.connection_details.connection is not None
+            and device.connection_details.connection.mac is not None
+        ):
+            connections = {
+                (CONNECTION_NETWORK_MAC, device.connection_details.connection.mac)
+            }
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, identifier)},
+            connections=connections,
             manufacturer=device.manufacturer,
             serial_number=device.serial_number,
             model=device.model_name,
@@ -503,7 +1409,7 @@ class CombinedEnergyReadingsSensor(
             return None
         for device in self.coordinator.data.devices:
             if (
-                getattr(device, "device_type", None) == self.device_type
+                getattr(device, "installation_device_type", None) == self.device_type
                 and getattr(device, "device_id", None) == self.device_id
             ):
                 return device
@@ -519,200 +1425,27 @@ class CombinedEnergyReadingsSensor(
     @property
     def available(self) -> bool:
         """Indicate if the entity is available."""
-        raw_value = self._raw_value
-        if isinstance(raw_value, Sequence):
-            return any(rv is not None for rv in raw_value)
-        return raw_value is not None
+        return self._raw_value is not None
 
-    def _to_native_value(self, raw_value: Any) -> float | None:
-        """Convert non-none raw value into usable sensor value."""
-        return float(raw_value)
-
-    def _aggregate_sum(self, raw_values: Sequence[Any]) -> float | None:
-        """Sum all non-none raw values."""
-        if all(rv is None for rv in raw_values):
-            return None
-        return sum(self._to_native_value(rv) for rv in raw_values if rv is not None)
-
-    def _aggregate_latest(self, raw_values: Sequence[Any]) -> float | None:
-        """Return the last non-none raw value."""
-        for raw_value in reversed(raw_values):
-            if raw_value is not None:
-                return self._to_native_value(raw_value)
-        return None
+    def _normalize_float_value(self, value: float) -> float:
+        """Normalize energy float values to remove precision noise."""
+        if self.entity_description.device_class != SensorDeviceClass.ENERGY:
+            return value
+        if abs(value) < ENERGY_ZERO_EPSILON:
+            return 0.0
+        return round(value, ENERGY_STATE_ROUNDING_DIGITS)
 
     @property
-    def last_reset(self) -> datetime | None:
-        """Last time the data was reset."""
-        if self.entity_description.state_class != SensorStateClass.TOTAL:
-            return None
-        readings_device = self.readings_device
-        if readings_device is None:
-            return None
-        if self.entity_description.aggregation == Aggregation.SUM:
-            return readings_device.range_start
-        return readings_device.range_end
-
-    @property
-    def native_value(self) -> int | float | None:
+    def native_value(self) -> int | float | str | datetime | None:
         """Return the state of the sensor."""
-        raw_value = self._raw_value
-        if raw_value is None:
-            return None
-        if isinstance(raw_value, Sequence):
-            match self.entity_description.aggregation:
-                case Aggregation.SUM:
-                    return self._aggregate_sum(raw_value)
-                case Aggregation.LATEST:
-                    return self._aggregate_latest(raw_value)
-        return self._to_native_value(raw_value)
-
-
-class GenericSensor(CombinedEnergyReadingsSensor):
-    """Sensor that returns the last value of a sequence of readings."""
-
-
-class EnergySensor(CombinedEnergyReadingsSensor):
-    """Sensor for energy readings."""
-
-
-class PowerSensor(CombinedEnergyReadingsSensor):
-    """Sensor for power readings."""
-
-
-class PowerFactorSensor(CombinedEnergyReadingsSensor):
-    """Sensor for power factor readings."""
-
-
-class WaterVolumeSensor(CombinedEnergyReadingsSensor):
-    """Sensor for water volume readings."""
-
-
-# Map of common device classes to specific sensor types
-SENSOR_TYPE_MAP: dict[
-    SensorDeviceClass | str | None, type[CombinedEnergyReadingsSensor]
-] = {
-    SensorDeviceClass.ENERGY: EnergySensor,
-    SensorDeviceClass.POWER: PowerSensor,
-    SensorDeviceClass.WATER: WaterVolumeSensor,
-    SensorDeviceClass.POWER_FACTOR: PowerFactorSensor,
-}
-
-
-class CombinedEnergyTariffSensor(
-    CoordinatorEntity[CombinedEnergyTariffDetailsCoordinator], SensorEntity
-):
-    """Representation of a Combined Energy API tariff sensor."""
-
-    entity_description: SensorEntityDescription
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        installation: Installation,
-        coordinator: CombinedEnergyTariffDetailsCoordinator,
-        description: CombinedEnergySensorDescription,
-    ) -> None:
-        """Initialise Tariff Sensor."""
-        super().__init__(coordinator)
-        identifier = f"install_{installation.id}-tariff-details"
-        self.entity_description = description
-        self._attr_unique_id = f"{identifier}-{description.key}"
-        if data := self.coordinator.data:
-            created_at = data.tariff.as_at.isoformat() if data.tariff.as_at else None
-            self._attr_device_info = DeviceInfo(
-                identifiers={
-                    (DOMAIN, identifier),
-                    (DOMAIN, f"tariff_plan_{data.tariff.plan_id}"),
-                },
-                manufacturer=data.tariff.retailer_name,
-                name=data.tariff.plan_name,
-                serial_number=str(data.tariff.plan_id),
-                created_at=created_at,
-                modified_at=data.tariff.updated.isoformat(),
-            )
-        else:
-            self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, identifier)})
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value reported by the sensor."""
-        if data := self.coordinator.data:
-            return getattr(data.tariff, self.entity_description.key) / 100.0
-        return None
-
-
-class PriceSensor(CombinedEnergyTariffSensor):
-    """Sensor for group price readings."""
-
-    _cancel_next_refresh: CALLBACK_TYPE | None = None
-
-    def __init__(
-        self,
-        installation: Installation,
-        coordinator: CombinedEnergyTariffDetailsCoordinator,
-    ) -> None:
-        """Initialise Group Price Sensor."""
-        self._timezone = installation.timezone
-        super().__init__(
-            installation=installation,
-            coordinator=coordinator,
-            description=SensorEntityDescription(
-                key="cost",
-                translation_key="tariff_details_cost",
-                icon="mdi:cash-minus",
-                state_class=SensorStateClass.TOTAL,
-                native_unit_of_measurement=f"{CURRENCY_AUD}/{UnitOfEnergy.KILO_WATT_HOUR}",
-                device_class=SensorDeviceClass.MONETARY,
-                suggested_display_precision=2,
-            ),
-        )
-
-    async def async_added_to_hass(self) -> None:
-        """Run when entity about to be added to hass."""
-        await super().async_added_to_hass()
-        self._schedule_refresh()
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Run when entity about to be removed from hass."""
-        await super().async_will_remove_from_hass()
-        if self._cancel_next_refresh:
-            self._cancel_next_refresh()
-            self._cancel_next_refresh = None
-
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        super()._handle_coordinator_update()
-        self._schedule_refresh()
-
-    def _schedule_refresh(self) -> None:
-        """Schedule a refresh for the next cost change."""
-        if self._cancel_next_refresh:
-            self._cancel_next_refresh()
-            self._cancel_next_refresh = None
-
-        if self.coordinator.data is None:
-            return
-
-        now = datetime.now(tz=self._timezone)
-        next_change = self.coordinator.data.tariff.next_cost_change(now)
-        if next_change is None:
-            return
-
-        self._cancel_next_refresh = async_track_point_in_time(
-            self.hass, self._refresh_price, next_change
-        )
-
-    def _refresh_price(self) -> None:
-        """Refresh the price sensor."""
-        self.async_write_ha_state()
-        self._schedule_refresh()
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value reported by the sensor."""
-        if self.coordinator.data is None:
-            return None
-        now = datetime.now(tz=self._timezone)
-        cost = self.coordinator.data.tariff.cost_at(now)
-        return cost / 100.0 if cost is not None else None
+        value = self._raw_value
+        if (
+            self.entity_description.device_class == SensorDeviceClass.TIMESTAMP
+            and isinstance(value, int | float)
+        ):
+            return datetime.fromtimestamp(value, self._installation_timezone)
+        if self.entity_description.absolute and isinstance(value, int | float):
+            value = abs(value)
+        if isinstance(value, float):
+            return self._normalize_float_value(value)
+        return value

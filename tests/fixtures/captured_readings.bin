@@ -1,0 +1,37 @@
+Â¸í+
+readingsBÞ+periodEnd,periodDurationSecs,count
+1784415110,5,8
+-
+SystemReading,5
+periodEnd,deviceId,readingCount,connectedDevices,dmgId,jvmStartup,meta,operationMessage,operationStatus,osStartup,pluginStartup,registeredDevices,state,temperature,periodEndStr
+1784415110,1,5,2,12345,1783736749,"{""remoteVersion"":13,""loadAvg1m"":1.35,""diskAvailable"":114}",!NULL,CONNECTED_ACTIVE,1783736585,1783736885,8,!NULL,!NULL,26-07-19 0851 +1000
+-
+WaterHeaterReading,5
+periodEnd,deviceId,readingCount,amenityWaterTemp,cumChargeEnergy,cumDischargeSecs,currentAmenityLitres,energyConsumed,energyConsumedBattery,energyConsumedGrid,energyConsumedSolar,estFlowRate,extInletTemp,extOutletTemp,inletTemp,maxAmenityLitres,maxEnergy,maxPowerConsumption,meta,minAmenityLitres,operationMessage,operationStatus,optAmenityLitres,powerAvg,powerLast,powerMax,powerMin,powerReactiveAvg,powerReactiveLast,powerReactiveMax,powerReactiveMin,s1,s2,s3,s4,s5,s6,sOC,sOE,status,periodEndStr
+1784415110,3,5,!NULL,!NULL,!NULL,546.0,-4.14472,-0.0,-0.0,-4.14472,!NULL,!NULL,!NULL,22.0,585.0,!NULL,3600.0,!NULL,175.0,!NULL,CONNECTED_ACTIVE,468.0,-2984.2,-2985.0,-2981.0,-2985.0,!NULL,!NULL,!NULL,!NULL,68.08,72.18,72.2,72.2,72.3,72.0,93.0,93.0,"{""mode"":""HEAT"",""up"":189284,""relay"":{""A"":468507,""B"":34854,""C"":10853,""D"":1968,""T"":0},""fault"":{""act"":[]},""ec_res"":{""active"":-1,""id"":0,""relay"":0,""trip"":256,""fault"":0},""power"":{""v"":238.04,""a"":12.536,""w"":-2985,""hz"":49.98},""temp"":{""ts1"":72,""ts2"":72.3,""ts3"":72.2,""ts4"":72.2,""ts5"":72.2,""pcb1"":45.4,""tbe"":68.1,""els"":68.8}}",26-07-19 0851 +1000
+-
+GridMeterReading,5
+periodEnd,deviceId,readingCount,energyConsumed,energyConsumedBattery,energyConsumedGrid,energyConsumedSolar,energyNett,energySupplied,energySuppliedConsumed,energySuppliedExported,energySuppliedStored,frequencyAvg,frequencyMax,frequencyMin,maxPowerProduction,meta,operationMessage,operationStatus,powerAAvg,powerALast,powerAMax,powerAMin,powerAvg,powerBAvg,powerBLast,powerBMax,powerBMin,powerCAvg,powerCLast,powerCMax,powerCMin,powerFactorA,powerFactorB,powerFactorC,powerLast,powerMax,powerMin,powerReactiveAAvg,powerReactiveALast,powerReactiveAMax,powerReactiveAMin,powerReactiveAvg,powerReactiveBAvg,powerReactiveBLast,powerReactiveBMax,powerReactiveBMin,powerReactiveCAvg,powerReactiveCLast,powerReactiveCMax,powerReactiveCMin,powerReactiveLast,powerReactiveMax,powerReactiveMin,voltageA,voltageAAvg,voltageALast,voltageAMax,voltageAMin,voltageB,voltageBAvg,voltageBLast,voltageBMax,voltageBMin,voltageC,voltageCAvg,voltageCLast,voltageCMax,voltageCMin,periodEndStr
+1784415110,4,5,-0.61643,0.0,0.0,-0.61643,-0.61643,0.0,0.0,0.0,-0.0,244.58499,244.77499,244.34999,22080.0,!NULL,!NULL,CONNECTED_ACTIVE,-443.82905,-437.10202,-437.10202,-453.78403,-443.82905,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,-0.92208,!NULL,!NULL,-437.10202,-437.10202,-453.78403,192.30681,191.32707,195.00969,190.09381,192.30681,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,191.32707,195.00969,190.09381,244.77499,244.58499,244.77499,244.77499,244.34999,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,26-07-19 0851 +1000
+-
+SolarPvReading,5
+periodEnd,deviceId,readingCount,energySupplied,energySuppliedConsumed,energySuppliedExported,energySuppliedStored,maxPowerProduction,meta,operationMessage,operationStatus,powerAvg,powerLast,powerMax,powerMin,powerReactiveAvg,powerReactiveLast,powerReactiveMax,powerReactiveMin,requestedPower,periodEndStr
+1784415110,6,5,5.18947,4.57304,0.61643,-0.0,0.0,!NULL,!NULL,CONNECTED_ACTIVE,3736.41567,3735.59253,3739.68921,3733.55371,428.24426,440.24197,451.66138,398.82828,0.0,26-07-19 0851 +1000
+-
+GenericConsumerReading,5
+periodEnd,deviceId,readingCount,energyConsumed,energyConsumedBattery,energyConsumedGrid,energyConsumedSolar,meta,operationMessage,operationStatus,powerAvg,powerLast,powerMax,powerMin,powerReactiveAvg,powerReactiveLast,powerReactiveMax,powerReactiveMin,periodEndStr
+1784415110,7,5,-0.00001,-0.0,-0.0,-0.00001,!NULL,!NULL,CONNECTED_ACTIVE,-0.00803,-0.02919,0.0,-0.02919,0.01482,0.05838,0.05838,0.0,26-07-19 0851 +1000
+-
+GenericConsumerReading,5
+periodEnd,deviceId,readingCount,energyConsumed,energyConsumedBattery,energyConsumedGrid,energyConsumedSolar,meta,operationMessage,operationStatus,powerAvg,powerLast,powerMax,powerMin,powerReactiveAvg,powerReactiveLast,powerReactiveMax,powerReactiveMin,periodEndStr
+1784415110,8,5,-0.00243,-0.0,-0.0,-0.00243,!NULL,!NULL,CONNECTED_ACTIVE,-1.75078,-1.7698,-1.72859,-1.7698,5.22719,5.2576,5.2576,5.18434,26-07-19 0851 +1000
+-
+EnergyBalanceReading,5
+periodEnd,deviceId,readingCount,energyConsumed,energyConsumedBattery,energyConsumedGrid,energyConsumedSolar,meta,operationMessage,operationStatus,powerAvg,powerLast,powerMax,powerMin,powerReactiveAvg,powerReactiveLast,powerReactiveMax,powerReactiveMin,periodEndStr
+1784415110,5,!NULL,-0.42587,-0.0,-0.0,-0.42587,!NULL,!NULL,CONNECTED_ACTIVE,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,!NULL,26-07-19 0851 +1000
+-
+CombinerReading,5
+periodEnd,deviceId,readingCount,energyConsumedTotal,energyConsumedTotalBattery,energyConsumedTotalGrid,energyConsumedTotalSolar,energyCorrection,energyExported,energyExportedBattery,energyExportedGrid,energyExportedSolar,energyStored,energyStoredBattery,energyStoredGrid,energyStoredSolar,energySuppliedBattery,energySuppliedGrid,energySuppliedSolar,energySuppliedTotal,invalidReason,meta,operationMessage,operationStatus,valid,periodEndStr
+1784415110,!NULL,!NULL,-4.57304,-0.0,-0.0,-4.57304,0.0,-0.61643,0.0,0.0,-0.61643,0.0,0.0,0.0,0.0,0.0,0.0,5.18947,5.18947,!NULL,!NULL,!NULL,!NULL,!NULL,26-07-19 0851 +1000
+Â¸
+periodDurationSecs0

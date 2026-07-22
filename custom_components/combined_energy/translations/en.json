@@ -2,23 +2,26 @@
   "config": {
     "step": {
       "user": {
-        "description": "Define the API parameters for this installation",
+        "description": "Connect to your local Combined Energy bridge",
         "data": {
           "name": "The name of this installation",
-          "username": "Email or Mobile Number",
-          "password": "Password",
-          "installation_id": "Combined Energy Installation-ID"
+          "host": "Bridge host or IP address"
         }
       }
     },
     "error": {
-      "installation_not_accessible": "Permission denied for Installation ID",
       "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Reconfiguration was successful"
+    }
+  },
+  "issues": {
+    "needs_reconfigure": {
+      "title": "Reconfiguration required",
+      "description": "This entry was migrated and needs to be reconfigured. Open the integration and run reconfigure."
     }
   },
   "entity": {
@@ -35,8 +38,71 @@
       "energy_consumed_grid": {
         "name": "Energy Consumption Grid"
       },
+      "power_avg": {
+        "name": "Power Avg"
+      },
+      "power_last": {
+        "name": "Power Last"
+      },
+      "power_max": {
+        "name": "Power Max"
+      },
+      "power_min": {
+        "name": "Power Min"
+      },
+      "power_reactive_avg": {
+        "name": "Reactive Power Avg"
+      },
+      "power_reactive_last": {
+        "name": "Reactive Power Last"
+      },
+      "power_reactive_max": {
+        "name": "Reactive Power Max"
+      },
+      "power_reactive_min": {
+        "name": "Reactive Power Min"
+      },
       "solar_pv_energy_supplied": {
         "name": "Energy Supplied"
+      },
+      "solar_pv_energy_supplied_consumed": {
+        "name": "Energy Supplied Consumed"
+      },
+      "solar_pv_energy_supplied_exported": {
+        "name": "Energy Supplied Exported"
+      },
+      "solar_pv_energy_supplied_stored": {
+        "name": "Energy Supplied Stored"
+      },
+      "solar_pv_max_power_production": {
+        "name": "Max Power Production"
+      },
+      "solar_pv_power_avg": {
+        "name": "Power Avg"
+      },
+      "solar_pv_power_last": {
+        "name": "Power Last"
+      },
+      "solar_pv_power_max": {
+        "name": "Power Max"
+      },
+      "solar_pv_power_min": {
+        "name": "Power Min"
+      },
+      "solar_pv_power_reactive_avg": {
+        "name": "Reactive Power Avg"
+      },
+      "solar_pv_power_reactive_last": {
+        "name": "Reactive Power Last"
+      },
+      "solar_pv_power_reactive_max": {
+        "name": "Reactive Power Max"
+      },
+      "solar_pv_power_reactive_min": {
+        "name": "Reactive Power Min"
+      },
+      "solar_pv_requested_power": {
+        "name": "Requested Power"
       },
       "water_heater_available_energy": {
         "name": "Hot Water Available"
@@ -46,6 +112,45 @@
       },
       "water_heater_max_energy": {
         "name": "Hot Water Max"
+      },
+      "water_heater_amenity_water_temp": {
+        "name": "Amenity Water Temperature"
+      },
+      "water_heater_cumulative_charge_energy": {
+        "name": "Cumulative Charge Energy"
+      },
+      "water_heater_cumulative_discharge_seconds": {
+        "name": "Cumulative Discharge Seconds"
+      },
+      "water_heater_estimated_flow_rate": {
+        "name": "Estimated Flow Rate"
+      },
+      "water_heater_external_inlet_temperature": {
+        "name": "External Inlet Temperature"
+      },
+      "water_heater_external_outlet_temperature": {
+        "name": "External Outlet Temperature"
+      },
+      "water_heater_inlet_temperature": {
+        "name": "Inlet Temperature"
+      },
+      "water_heater_max_energy_estimate": {
+        "name": "Max Energy Estimate"
+      },
+      "water_heater_max_power_consumption": {
+        "name": "Max Power Consumption"
+      },
+      "water_heater_min_amenity_litres": {
+        "name": "Min Amenity Litres"
+      },
+      "water_heater_optimal_amenity_litres": {
+        "name": "Optimal Amenity Litres"
+      },
+      "water_heater_state_of_charge": {
+        "name": "State of Charge"
+      },
+      "water_heater_state_of_energy": {
+        "name": "State of Energy"
       },
       "water_heater_output_temp": {
         "name": "Output temperature"
@@ -80,6 +185,129 @@
       "grid_meter_energy_consumed_battery": {
         "name": "Energy Export Battery"
       },
+      "grid_meter_energy_consumed_grid": {
+        "name": "Energy Export Grid"
+      },
+      "grid_meter_energy_nett": {
+        "name": "Energy Nett"
+      },
+      "grid_meter_energy_supplied_consumed": {
+        "name": "Energy Import Consumed"
+      },
+      "grid_meter_energy_supplied_exported": {
+        "name": "Energy Import Exported"
+      },
+      "grid_meter_energy_supplied_stored": {
+        "name": "Energy Import Stored"
+      },
+      "grid_meter_frequency_avg": {
+        "name": "Frequency Avg"
+      },
+      "grid_meter_frequency_max": {
+        "name": "Frequency Max"
+      },
+      "grid_meter_frequency_min": {
+        "name": "Frequency Min"
+      },
+      "grid_meter_max_power_production": {
+        "name": "Max Power Production"
+      },
+      "grid_meter_power_avg": {
+        "name": "Power Avg"
+      },
+      "grid_meter_power_last": {
+        "name": "Power Last"
+      },
+      "grid_meter_power_max": {
+        "name": "Power Max"
+      },
+      "grid_meter_power_min": {
+        "name": "Power Min"
+      },
+      "grid_meter_power_a_avg": {
+        "name": "Power A Avg"
+      },
+      "grid_meter_power_a_last": {
+        "name": "Power A Last"
+      },
+      "grid_meter_power_a_max": {
+        "name": "Power A Max"
+      },
+      "grid_meter_power_a_min": {
+        "name": "Power A Min"
+      },
+      "grid_meter_power_b_avg": {
+        "name": "Power B Avg"
+      },
+      "grid_meter_power_b_last": {
+        "name": "Power B Last"
+      },
+      "grid_meter_power_b_max": {
+        "name": "Power B Max"
+      },
+      "grid_meter_power_b_min": {
+        "name": "Power B Min"
+      },
+      "grid_meter_power_c_avg": {
+        "name": "Power C Avg"
+      },
+      "grid_meter_power_c_last": {
+        "name": "Power C Last"
+      },
+      "grid_meter_power_c_max": {
+        "name": "Power C Max"
+      },
+      "grid_meter_power_c_min": {
+        "name": "Power C Min"
+      },
+      "grid_meter_power_reactive_avg": {
+        "name": "Reactive Power Avg"
+      },
+      "grid_meter_power_reactive_last": {
+        "name": "Reactive Power Last"
+      },
+      "grid_meter_power_reactive_max": {
+        "name": "Reactive Power Max"
+      },
+      "grid_meter_power_reactive_min": {
+        "name": "Reactive Power Min"
+      },
+      "grid_meter_power_reactive_a_avg": {
+        "name": "Reactive Power A Avg"
+      },
+      "grid_meter_power_reactive_a_last": {
+        "name": "Reactive Power A Last"
+      },
+      "grid_meter_power_reactive_a_max": {
+        "name": "Reactive Power A Max"
+      },
+      "grid_meter_power_reactive_a_min": {
+        "name": "Reactive Power A Min"
+      },
+      "grid_meter_power_reactive_b_avg": {
+        "name": "Reactive Power B Avg"
+      },
+      "grid_meter_power_reactive_b_last": {
+        "name": "Reactive Power B Last"
+      },
+      "grid_meter_power_reactive_b_max": {
+        "name": "Reactive Power B Max"
+      },
+      "grid_meter_power_reactive_b_min": {
+        "name": "Reactive Power B Min"
+      },
+      "grid_meter_power_reactive_c_avg": {
+        "name": "Reactive Power C Avg"
+      },
+      "grid_meter_power_reactive_c_last": {
+        "name": "Reactive Power C Last"
+      },
+      "grid_meter_power_reactive_c_max": {
+        "name": "Reactive Power C Max"
+      },
+      "grid_meter_power_reactive_c_min": {
+        "name": "Reactive Power C Min"
+      },
       "grid_meter_power_factor_a": {
         "name": "Power Factor A"
       },
@@ -92,11 +320,47 @@
       "grid_meter_voltage_a": {
         "name": "Voltage A"
       },
+      "grid_meter_voltage_a_avg": {
+        "name": "Voltage A Avg"
+      },
+      "grid_meter_voltage_a_last": {
+        "name": "Voltage A Last"
+      },
+      "grid_meter_voltage_a_max": {
+        "name": "Voltage A Max"
+      },
+      "grid_meter_voltage_a_min": {
+        "name": "Voltage A Min"
+      },
       "grid_meter_voltage_b": {
         "name": "Voltage B"
       },
+      "grid_meter_voltage_b_avg": {
+        "name": "Voltage B Avg"
+      },
+      "grid_meter_voltage_b_last": {
+        "name": "Voltage B Last"
+      },
+      "grid_meter_voltage_b_max": {
+        "name": "Voltage B Max"
+      },
+      "grid_meter_voltage_b_min": {
+        "name": "Voltage B Min"
+      },
       "grid_meter_voltage_c": {
         "name": "Voltage C"
+      },
+      "grid_meter_voltage_c_avg": {
+        "name": "Voltage C Avg"
+      },
+      "grid_meter_voltage_c_last": {
+        "name": "Voltage C Last"
+      },
+      "grid_meter_voltage_c_max": {
+        "name": "Voltage C Max"
+      },
+      "grid_meter_voltage_c_min": {
+        "name": "Voltage C Min"
       },
       "combiner_energy_supplied": {
         "name": "Energy Supplied"
@@ -125,14 +389,56 @@
       "combiner_energy_correction": {
         "name": "Energy Correction"
       },
-      "tariff_details_daily_fee": {
-        "name": "Daily Fee"
+      "combiner_energy_exported": {
+        "name": "Energy Exported"
       },
-      "tariff_details_feed_in_cost": {
-        "name": "Feed In Cost"
+      "combiner_energy_exported_solar": {
+        "name": "Energy Exported Solar"
       },
-      "tariff_details_cost": {
-        "name": "Cost"
+      "combiner_energy_exported_battery": {
+        "name": "Energy Exported Battery"
+      },
+      "combiner_energy_exported_grid": {
+        "name": "Energy Exported Grid"
+      },
+      "combiner_energy_stored": {
+        "name": "Energy Stored"
+      },
+      "combiner_energy_stored_solar": {
+        "name": "Energy Stored Solar"
+      },
+      "combiner_energy_stored_battery": {
+        "name": "Energy Stored Battery"
+      },
+      "combiner_energy_stored_grid": {
+        "name": "Energy Stored Grid"
+      },
+      "system_reading_count": {
+        "name": "System Reading Count"
+      },
+      "system_connected_devices": {
+        "name": "System Connected Devices"
+      },
+      "system_registered_devices": {
+        "name": "System Registered Devices"
+      },
+      "system_jvm_startup": {
+        "name": "System JVM Startup"
+      },
+      "system_os_startup": {
+        "name": "System OS Startup"
+      },
+      "system_plugin_startup": {
+        "name": "System Plugin Startup"
+      },
+      "system_operation_status": {
+        "name": "System Operation Status"
+      },
+      "system_operation_message": {
+        "name": "System Operation Message"
+      },
+      "system_temperature": {
+        "name": "System Temperature"
       }
     }
   }

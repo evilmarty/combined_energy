@@ -30,8 +30,8 @@ After you have installed the custom component (see above):
 1. Goto the Configuration -> Integrations page.
 2. On the bottom right of the page, click on the + Add Integration sign to add an integration.
 3. Search for Combined Energy. (If you don't see it, try refreshing your browser page to reload the cache.)
-4. Provide the same credentials that are used for <https://athome.combined.energy> (see [How to get my Installation ID]).
-5. Click Submit so add the integration.
+4. Provide the local bridge host/IP address. The integration will discover broker details from the bridge and subscribe to local MQTT readings.
+5. Click Submit to add the integration.
 
 ### Testing
 

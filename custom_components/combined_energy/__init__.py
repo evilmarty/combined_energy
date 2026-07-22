@@ -2,51 +2,73 @@
 
 from __future__ import annotations
 
-from aiohttp import ClientResponseError
-
+from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import issue_registry as ir
 
-from .client import ClientAuthError, get_client
-from .const import DATA_API_CLIENT, DATA_COORDINATOR, DOMAIN
-from .coordinator import CombinedEnergyCoordinator
+from .bridge import BridgeBootstrapError, BridgeConnectionError, get_bridge_client
+from .const import (
+    CONF_STALE_ENTITY_CLEANUP_PENDING,
+    DATA_BRIDGE_CLIENT,
+    DATA_COORDINATOR,
+    DOMAIN,
+)
+from .coordinator import CombinedEnergyReadingsCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
-type CombinedEnergyConfigEntry = ConfigEntry[CombinedEnergyCoordinator]
+type CombinedEnergyConfigEntry = ConfigEntry[CombinedEnergyReadingsCoordinator]
+
+
+def _needs_reconfigure_issue_id(entry: ConfigEntry) -> str:
+    """Build issue id for entries that need reconfigure."""
+    return f"{entry.entry_id}_needs_reconfigure"
+
+
+async def _async_start_reconfigure_if_needed(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Start a reconfigure flow when one is not already in progress."""
+    for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN):
+        context = flow.get("context", {})
+        if (
+            context.get("source") == config_entries.SOURCE_RECONFIGURE
+            and context.get("entry_id") == entry.entry_id
+        ):
+            return
+    await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: CombinedEnergyConfigEntry
 ) -> bool:
     """Set up Combined Energy from a config entry."""
-
-    client = await get_client(
-        hass=hass,
-        mobile_or_email=entry.data[CONF_USERNAME],
-        password=entry.data[CONF_PASSWORD],
-    )
-
     try:
-        await client.login()
-    except ClientAuthError as ex:
-        raise ConfigEntryAuthFailed from ex
-    except ClientResponseError as ex:
+        client = await get_bridge_client(hass=hass, data=entry.data)
+        coordinator = CombinedEnergyReadingsCoordinator(
+            hass=hass,
+            client=client,
+            config_entry=entry,
+        )
+        await client.async_start()
+    except (BridgeBootstrapError, BridgeConnectionError, TimeoutError) as ex:
         raise ConfigEntryNotReady from ex
 
-    coordinator = CombinedEnergyCoordinator(
-        hass=hass, client=client, config_entry=entry
-    )
-
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
-        DATA_API_CLIENT: client,
+        DATA_BRIDGE_CLIENT: client,
         DATA_COORDINATOR: coordinator,
     }
     entry.runtime_data = coordinator
 
-    await coordinator.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -56,5 +78,24 @@ async def async_unload_entry(
 ) -> bool:
     """Unload Combined Energy config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        client = hass.data[DOMAIN][entry.entry_id][DATA_BRIDGE_CLIENT]
+        await client.async_stop()
         del hass.data[DOMAIN][entry.entry_id]
     return unload_ok
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old config entries."""
+    if entry.version == 1:
+        data = {**entry.data, CONF_STALE_ENTITY_CLEANUP_PENDING: True}
+        hass.config_entries.async_update_entry(entry, version=2, data=data)
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            _needs_reconfigure_issue_id(entry),
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="needs_reconfigure",
+        )
+        await _async_start_reconfigure_if_needed(hass, entry)
+    return True

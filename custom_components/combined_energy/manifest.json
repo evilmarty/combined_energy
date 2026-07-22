@@ -9,8 +9,11 @@
   "dependencies": [],
   "documentation": "https://github.com/evilmarty/combined_energy",
   "integration_type": "hub",
-  "iot_class": "cloud_polling",
+  "iot_class": "local_push",
   "issue_tracker": "https://github.com/evilmarty/combined_energy/issues",
   "quality_scale": "silver",
+  "requirements": [
+    "paho-mqtt==2.1.0"
+  ],
   "version": "0.6.6"
 }

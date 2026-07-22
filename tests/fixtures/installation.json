@@ -1,212 +1,267 @@
 {
-  "installationId": 1234,
-  "installationName": "xxxx",
-  "source": "a",
-  "role": "OWNER",
-  "readOnly": false,
-  "timezone": "Etc/UTC",
-  "dmgId": 12345,
-  "tags": [
-    "emu1",
-    "ems",
-    "dnsp-ex",
-    "tariff-flat",
-    "meter-pm2",
-    "water-ps2",
-    "solar-generic",
-    "phase-1"
-  ],
-  "mqttAccountKura": "cet-ecn",
-  "mqttBrokerEms": "mqtt2.combined.energy",
-  "streetAddress": "xxxx",
-  "locality": "xxxx",
-  "state": "XXX",
-  "postcode": "0000",
-  "status": "ACTIVE",
-  "reviewStatus": "VALIDATED",
-  "nmi": "1111111111",
   "phase": 1,
-  "orgId": 1234,
-  "tariffPlanId": 12345,
-  "tariffPlanAccepted": 1725869558078,
+  "timezone": "Etc/UTC",
+  "locality": "xxxx",
+  "postcode": "0000",
+  "lon": 152.911926269531,
+  "state": "xxx",
+  "updated": 1696573487,
+  "lat": -27.6688842773438,
+  "dnspCode": "EX",
+  "status": "ACTIVE",
+  "name": "Some Installation",
+  "algorithm": "optimiser",
+  "address": "xxxx",
+  "country": "xxxx",
+  "id": 1,
   "devices": [
     {
-      "deviceId": 1,
+      "id": 1,
+      "type": "GATEWAY",
+      "manufacturer": "CET",
+      "model": "EMU1",
+      "serial": "EMU1-XXXXXXXXXXXX",
       "status": "ACTIVE",
       "refName": "GW1",
-      "deviceType": "GATEWAY",
+      "name": "Gateway",
       "category": "SYSTEM",
-      "displayName": "Gateway",
-      "deviceManufacturer": "CET",
-      "deviceModelName": "EMU1",
-      "deviceSerialNumber": "EMU1-XXXXXXXXXXXX",
-      "supplierDevice": false,
-      "storageDevice": false,
-      "consumerDevice": false,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null
+      "supplier": false,
+      "storage": false,
+      "consumer": false,
+      "system": true
     },
     {
-      "deviceId": 2,
+      "id": 2,
+      "type": "POWER_METER",
+      "manufacturer": "CET",
+      "model": "PM2",
       "status": "ACTIVE",
       "refName": "PM1",
-      "deviceType": "POWER_METER",
+      "name": "Power Meter",
       "category": "SYSTEM",
-      "displayName": "Power Meter",
-      "deviceManufacturer": "CET",
-      "deviceModelName": "PM2",
-      "deviceSerialNumber": "PM2-XXXXXXXXXXXX",
-      "supplierDevice": false,
-      "storageDevice": false,
-      "consumerDevice": false,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null
+      "supplier": false,
+      "storage": false,
+      "consumer": false,
+      "system": true,
+      "connectionDetails": {
+        "connection": {
+          "mac": "A1:B2:C3:D4:E5:F6",
+          "type": "TCP",
+          "protocol": "MODBUS-RTU",
+          "port": 23458
+        },
+        "type": "PM2",
+        "channelCount": 6,
+        "configurations": [
+          {
+            "name": "GRD1",
+            "channels": [
+              {
+                "ch": 0,
+                "ph": "A"
+              }
+            ]
+          },
+          {
+            "name": "SOL1",
+            "channels": [
+              {
+                "ch": 1,
+                "ph": "A"
+              }
+            ]
+          },
+          {
+            "name": "GC1",
+            "channels": [
+              {
+                "ch": 2,
+                "ph": "A"
+              }
+            ]
+          },
+          {
+            "name": "AC1",
+            "channels": [
+              {
+                "ch": 3,
+                "ph": "A"
+              }
+            ]
+          }
+        ],
+        "modbusUnit": 11
+      },
+      "serial": "PM2-XXXXXXXXXXXX"
     },
     {
-      "deviceId": 3,
+      "id": 3,
+      "type": "WATER_HEATER",
+      "manufacturer": "XXX",
+      "model": "PS2",
       "status": "ACTIVE",
       "refName": "WAT1",
-      "deviceType": "WATER_HEATER",
+      "name": "Water Heater",
       "category": "WATER_HEATER",
-      "displayName": "Water Heater",
-      "deviceManufacturer": "XXX",
-      "deviceModelName": "PS2",
-      "deviceSerialNumber": "PS2-XXXXXXXXXXXX",
-      "supplierDevice": false,
-      "storageDevice": true,
-      "consumerDevice": true,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": 3500,
-      "iconOverride": null,
-      "orderOverride": null
+      "consumer": true,
+      "storage": true,
+      "connectionDetails": {
+        "connection": {
+          "mac": "A1:B2:C3:D4:E5:F6",
+          "type": "TCP",
+          "protocol": "MODBUS-RTU",
+          "port": 23458
+        },
+        "supply": "GRD1"
+      },
+      "serial": "PS2-XXXXXXXXXXXX",
+      "actionDetails": [
+        {
+          "allow": [
+            "SUPPORT"
+          ],
+          "name": "INT_POW",
+          "label": "Internal Power",
+          "type": "Numeric",
+          "acceptsNull": true
+        },
+        {
+          "allow": [
+            "SUPPORT"
+          ],
+          "name": "MIN_SOC",
+          "label": "Min SOC %",
+          "type": "SOC",
+          "acceptsNull": true,
+          "expiresTo": "none"
+        },
+        {
+          "allow": [
+            "SUPPORT"
+          ],
+          "name": "MAX_SOC",
+          "label": "Max SOC %",
+          "type": "SOC",
+          "acceptsNull": true,
+          "expiresTo": "none"
+        }
+      ],
+      "maxPowerConsumption": 3500
     },
     {
-      "deviceId": 4,
+      "id": 4,
+      "type": "GRID_METER",
+      "manufacturer": "CET",
       "status": "ACTIVE",
       "refName": "GRD1",
-      "deviceType": "GRID_METER",
+      "name": "Grid Meter",
       "category": "GRID_METER",
-      "displayName": "Grid Meter",
-      "deviceManufacturer": "CET",
-      "deviceModelName": null,
-      "deviceSerialNumber": null,
-      "supplierDevice": true,
-      "storageDevice": false,
-      "consumerDevice": false,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "assets": ["PM1"]
+      "supplier": true,
+      "storage": false,
+      "consumer": false,
+      "connectionDetails": {
+        "phaseType": "1",
+        "deviceReference": "PM1.GRD1"
+      },
+      "actionDetails": [
+        {
+          "allow": [
+            "DEVELOPER"
+          ],
+          "name": "EXPORT_LIMIT",
+          "type": "Numeric",
+          "label": "Export Limit",
+          "acceptsNull": true
+        },
+        {
+          "allow": [
+            "DEVELOPER"
+          ],
+          "name": "GRID_POWER_TARGET",
+          "label": "Grid Power Target",
+          "type": "Numeric",
+          "acceptsNull": true
+        },
+        {
+          "allow": [
+            "DEVELOPER"
+          ],
+          "name": "IMPORT_LIMIT",
+          "type": "Numeric",
+          "label": "Import Limit",
+          "acceptsNull": true
+        },
+        {
+          "allow": [
+            "DEVELOPER"
+          ],
+          "name": "GRID_SERVICE_TARGET",
+          "label": "Grid Service Target",
+          "type": "Numeric",
+          "acceptsNull": true
+        }
+      ]
     },
     {
-      "deviceId": 5,
+      "id": 5,
+      "type": "ENERGY_BALANCE",
+      "manufacturer": "CET",
       "status": "ACTIVE",
       "refName": "EB1",
-      "deviceType": "ENERGY_BALANCE",
+      "name": "House",
       "category": "BUILDING",
-      "displayName": "House",
-      "deviceManufacturer": "CET",
-      "deviceModelName": null,
-      "deviceSerialNumber": null,
-      "supplierDevice": false,
-      "storageDevice": false,
-      "consumerDevice": true,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null
+      "consumer": true,
+      "storage": false,
+      "connectionDetails": {
+        "supply": "GRD1"
+      }
     },
     {
-      "deviceId": 6,
+      "id": 6,
+      "type": "SOLAR_PV",
       "status": "ACTIVE",
       "refName": "SOL1",
-      "deviceType": "SOLAR_PV",
+      "name": "Solar",
       "category": "SOLAR_PV",
-      "displayName": "Solar",
-      "deviceManufacturer": "GENERIC",
-      "deviceModelName": null,
-      "deviceSerialNumber": null,
-      "supplierDevice": true,
-      "storageDevice": false,
-      "consumerDevice": false,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null,
-      "assets": ["PM1"]
+      "supplier": true,
+      "storage": false,
+      "consumer": false,
+      "manufacturer": "GENERIC",
+      "connectionDetails": {
+        "deviceReference": "PM1.SOL1",
+        "supply": "GRD1"
+      }
     },
     {
-      "deviceId": 7,
+      "id": 7,
+      "type": "GENERIC_CONSUMER",
       "status": "ACTIVE",
       "refName": "GC1",
-      "deviceType": "GENERIC_CONSUMER",
+      "name": "Cooking",
       "category": "COOKING",
-      "displayName": "Cooking",
-      "deviceManufacturer": "",
-      "deviceModelName": null,
-      "deviceSerialNumber": null,
-      "supplierDevice": false,
-      "storageDevice": false,
-      "consumerDevice": true,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null,
-      "assets": ["PM1"]
+      "consumer": true,
+      "storage": false,
+      "connectionDetails": {
+        "deviceReference": "PM1.GC1",
+        "supply": "GRD1"
+      }
     },
     {
-      "deviceId": 8,
+      "id": 8,
+      "type": "GENERIC_CONSUMER",
       "status": "ACTIVE",
       "refName": "AC1",
-      "deviceType": "GENERIC_CONSUMER",
+      "name": "Aircon",
       "category": "AIRCON",
-      "displayName": "Aircon",
-      "deviceManufacturer": "",
-      "deviceModelName": null,
-      "deviceSerialNumber": null,
-      "supplierDevice": false,
-      "storageDevice": false,
-      "consumerDevice": true,
-      "maxPowerSupply": null,
-      "maxPowerConsumption": null,
-      "iconOverride": null,
-      "orderOverride": null,
-      "actionDetails": null,
-      "assets": ["PM1"]
+      "consumer": true,
+      "storage": false,
+      "connectionDetails": {
+        "deviceReference": "PM1.AC1",
+        "supply": "GRD1"
+      }
     }
   ],
-  "pm": {
-    "config": [
-      { "name": "GRD1", "channels": [{ "ch": 0, "ph": "A" }] },
-      { "name": "SOL1", "channels": [{ "ch": 1, "ph": "A" }] },
-      { "name": "GC1", "channels": [{ "ch": 2, "ph": "A" }] },
-      { "name": "AC1", "channels": [{ "ch": 3, "ph": "A" }] }
-    ]
-  },
-  "agreements": [
-    {
-      "installationId": 1234,
-      "id": 1234,
-      "aid": 1,
-      "name": "CET-XXXXXX",
-      "mandatory": true,
-      "category": "SERVICE",
-      "customerId": 1234,
-      "agreedAt": 1696573333419,
-      "accepted": true,
-      "description": "Combined Energy's Data Services Agreement",
-      "content": "xxxx"
-    }
-  ],
-  "brand": "xxxx"
+  "version": 13,
+  "gwId": 12345,
+  "installed": 1696573333
 }
