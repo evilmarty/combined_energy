@@ -15,11 +15,13 @@ from custom_components.combined_energy.models import (
     EnergyBalanceReading,
     GridMeterReading,
     Installation,
+    Intel,
     Login,
     LogSession,
     Readings,
     SolarPvReading,
     SystemReading,
+    TariffDetail,
     WaterHeaterReading,
 )
 
@@ -261,3 +263,110 @@ class TestWaterHeaterReading:
             maxAmenityLitres=max_energy,
         )
         assert device.available_percentage == expected
+
+
+class TestIntel:
+    """Test Intel model."""
+
+    def test_intel_payload_model(self):
+        """Validate intel payload parsing and aliases."""
+        intel = Intel.model_validate(
+            {
+                "installationId": 5076,
+                "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+                "version": 1.2,
+                "tariffDetails": [
+                    {
+                        "tariffType": "TOU",
+                        "costs": [25.62, 30.02, 39.88],
+                        "months": [1, 2, 3],
+                        "dnspCode": "EX",
+                        "feedIn": 2,
+                        "retailerCode": "ALINTA_ENERGY",
+                        "days": [1, 2, 3, 4, 5],
+                        "periods": [0, 7, 16],
+                        "state": "QLD",
+                        "dailyFee": 132.92,
+                        "planId": 55232,
+                    }
+                ],
+                "solarEnergyForecast": [
+                    {
+                        "cloudCover": [68, 45],
+                        "temperatureC": [17, 16],
+                        "day": "2026-07-20",
+                        "periodEndHour": [0, 0.5],
+                        "energySuppliedPred": [0, 67],
+                    }
+                ],
+                "generalEnergyUsagePattern": {
+                    "periodEndHour": [0.5, 1.0],
+                    "energyConsumedAvg": [-79, -78],
+                },
+                "nmi": "3116633733",
+                "waterDischargePattern": [
+                    {
+                        "profiles": [
+                            {
+                                "hourOfDay": [0.5, 1.0],
+                                "dischargeAmenityLitres": [-2.6, -5.0],
+                                "dowType": "WD",
+                                "energyConsumedDailyAvg": -5770,
+                            }
+                        ],
+                        "deviceId": 3,
+                        "refName": "WAT1",
+                    }
+                ],
+            }
+        )
+
+        assert intel.installation_id == 5076
+        assert intel.tariff_details[0].plan_id == 55232
+        assert intel.solar_energy_forecast[0].period_end_hour == [0.0, 0.5]
+        assert intel.general_energy_usage_pattern.energy_consumed_avg == [-79.0, -78.0]
+        assert intel.water_discharge_pattern[0].profiles[0].dow_type == "WD"
+
+
+class TestTariffDetail:
+    """Test TariffDetail utility methods."""
+
+    @pytest.fixture
+    def tariff_detail(self):
+        """Build a representative TOU tariff detail."""
+        return TariffDetail.model_validate(
+            {
+                "tariffType": "TOU",
+                "costs": [25.62, 30.02, 39.88, 30.02, 25.62],
+                "months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                "dnspCode": "EX",
+                "feedIn": 2,
+                "retailerCode": "ALINTA_ENERGY",
+                "days": [1, 2, 3, 4, 5],
+                "periods": [0, 7, 16, 20, 22],
+                "state": "QLD",
+                "dailyFee": 132.92,
+                "planId": 55232,
+            }
+        )
+
+    def test_cost_at(self, tariff_detail):
+        """Get cost based on month/day/time periods."""
+        assert tariff_detail.cost_at(datetime(2026, 7, 20, 6, 30)) == 25.62
+        assert tariff_detail.cost_at(datetime(2026, 7, 20, 8, 0)) == 30.02
+        assert tariff_detail.cost_at(datetime(2026, 7, 20, 17, 0)) == 39.88
+        assert tariff_detail.cost_at(datetime(2026, 7, 20, 21, 0)) == 30.02
+        assert tariff_detail.cost_at(datetime(2026, 7, 20, 23, 0)) == 25.62
+        assert tariff_detail.cost_at(datetime(2026, 7, 19, 8, 0)) is None
+
+    def test_next_cost_change(self, tariff_detail):
+        """Calculate next tariff transition datetime."""
+        assert tariff_detail.next_cost_change(datetime(2026, 7, 20, 8, 15)) == datetime(
+            2026, 7, 20, 16, 0
+        )
+        assert tariff_detail.next_cost_change(datetime(2026, 7, 20, 23, 30)) == datetime(
+            2026, 7, 21, 0, 0
+        )
+        assert tariff_detail.next_cost_change(datetime(2026, 7, 24, 23, 30)) == datetime(
+            2026, 7, 27, 0, 0
+        )

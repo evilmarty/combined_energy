@@ -171,6 +171,148 @@ class Installation(BaseModel):
     gateway_id: int = Field(alias="gwId")
 
 
+class TariffDetail(BaseModel):
+    """Tariff details returned by intel payload."""
+
+    tariff_type: str = Field(alias="tariffType")
+    costs: list[float]
+    months: list[int]
+    dnsp_code: str = Field(alias="dnspCode")
+    feed_in: float = Field(alias="feedIn")
+    retailer_code: str = Field(alias="retailerCode")
+    days: list[int]
+    periods: list[float]
+    state: str
+    daily_fee: float = Field(alias="dailyFee")
+    plan_id: int = Field(alias="planId")
+
+    @staticmethod
+    def _hour_fraction(dt: datetime) -> float:
+        """Return hour-of-day as a fractional value."""
+        return (
+            dt.hour
+            + dt.minute / 60
+            + dt.second / 3600
+            + dt.microsecond / 3_600_000_000
+        )
+
+    @staticmethod
+    def _at_period(dt: datetime, period_hour: float) -> datetime:
+        """Return datetime at the provided period hour."""
+        hour = int(period_hour)
+        minutes = int(round((period_hour - hour) * 60))
+        if minutes == 60:
+            hour += 1
+            minutes = 0
+        return dt.replace(hour=hour, minute=minutes, second=0, microsecond=0)
+
+    def cost_at(self, dt: datetime) -> float | None:
+        """Get the tariff cost at a specific datetime."""
+        if (
+            not self.days
+            or not self.months
+            or not self.periods
+            or not self.costs
+            or dt.month not in self.months
+            or dt.isoweekday() not in self.days
+        ):
+            return None
+
+        hour_fraction = self._hour_fraction(dt)
+        for index, (start, end) in enumerate(zip(self.periods, self.periods[1:], strict=False)):
+            if start <= hour_fraction < end:
+                return self.costs[min(index, len(self.costs) - 1)]
+
+        return self.costs[-1]
+
+    def next_cost_change(self, dt: datetime) -> datetime | None:
+        """Get the next datetime when the cost changes."""
+        if not self.days or not self.months or not self.periods:
+            return None
+
+        periods = sorted(self.periods)
+        days = set(self.days)
+        months = sorted(set(self.months))
+        dt = dt.replace(second=0, microsecond=0)
+
+        if dt.month in months and dt.isoweekday() in days:
+            current_hour_fraction = self._hour_fraction(dt)
+            if period := next((p for p in periods if p > current_hour_fraction), None):
+                return self._at_period(dt, period)
+
+        dt = self._at_period(dt, periods[0]) + timedelta(days=1)
+        while dt.month in months:
+            if dt.isoweekday() in days:
+                return dt
+            dt += timedelta(days=1)
+
+        if next_month := next((month for month in months if month > dt.month), None):
+            dt = dt.replace(month=next_month, day=1)
+        else:
+            dt = dt.replace(year=dt.year + 1, month=months[0], day=1)
+
+        dt = self._at_period(dt, periods[0])
+        while dt.month in months:
+            if dt.isoweekday() in days:
+                return dt
+            dt += timedelta(days=1)
+
+        return None
+
+
+class SolarEnergyForecastDay(BaseModel):
+    """Solar forecast for a single day."""
+
+    cloud_cover: list[int] = Field(alias="cloudCover")
+    temperature_c: list[int] = Field(alias="temperatureC")
+    day: str
+    period_end_hour: list[float] = Field(alias="periodEndHour")
+    energy_supplied_pred: list[float] = Field(alias="energySuppliedPred")
+
+
+class GeneralEnergyUsagePattern(BaseModel):
+    """General energy usage profile."""
+
+    period_end_hour: list[float] = Field(alias="periodEndHour")
+    energy_consumed_avg: list[float] = Field(alias="energyConsumedAvg")
+
+
+class WaterDischargeProfile(BaseModel):
+    """Water discharge profile for a day-type."""
+
+    hour_of_day: list[float] = Field(alias="hourOfDay")
+    discharge_amenity_litres: list[float] = Field(alias="dischargeAmenityLitres")
+    dow_type: str = Field(alias="dowType")
+    energy_consumed_daily_avg: float = Field(alias="energyConsumedDailyAvg")
+
+
+class WaterDischargePattern(BaseModel):
+    """Water discharge data for a device."""
+
+    profiles: list[WaterDischargeProfile]
+    device_id: int = Field(alias="deviceId")
+    ref_name: str = Field(alias="refName")
+
+
+class Intel(BaseModel):
+    """Intel payload model."""
+
+    installation_id: int = Field(alias="installationId")
+    request_time_str: str = Field(alias="requestTimeStr")
+    version: float
+    tariff_details: list[TariffDetail] = Field(alias="tariffDetails")
+    solar_energy_forecast: list[SolarEnergyForecastDay] = Field(
+        alias="solarEnergyForecast"
+    )
+    general_energy_usage_pattern: GeneralEnergyUsagePattern = Field(
+        alias="generalEnergyUsagePattern"
+    )
+    nmi: str
+    water_discharge_pattern: list[WaterDischargePattern] = Field(
+        alias="waterDischargePattern"
+    )
+
+
 class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""
 
