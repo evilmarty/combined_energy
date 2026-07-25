@@ -21,8 +21,8 @@ from custom_components.combined_energy.sensor import (
 )
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfEnergy
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ class TestCombinedEnergyReadingsSensor:
         return CombinedEnergySensorDescription(
             key="energy_supplied",
             translation_key="energy_supplied",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
@@ -85,6 +85,7 @@ class TestCombinedEnergyReadingsSensor:
         assert sensor.entity_description == entity_description
         assert sensor.device_id == device.id
         assert sensor.device_type == device.device_type
+        assert sensor.state_class == SensorStateClass.TOTAL_INCREASING
 
     def test_readings_device(self, sensor):
         """Test readings_device property."""
@@ -151,7 +152,7 @@ class TestCombinedEnergyReadingsSensor:
         description = CombinedEnergySensorDescription(
             key="energy_consumed",
             translation_key="grid_meter_energy_consumed",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
@@ -183,7 +184,7 @@ class TestCombinedEnergyReadingsSensor:
         description = CombinedEnergySensorDescription(
             key="energy_consumed_grid",
             translation_key="energy_consumed_grid",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
@@ -210,7 +211,7 @@ class TestCombinedEnergyReadingsSensor:
         description = CombinedEnergySensorDescription(
             key="energy_consumed_solar",
             translation_key="grid_meter_energy_consumed_solar",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
@@ -294,7 +295,7 @@ class TestCombinedEnergyReadingsSensor:
         combiner_description = CombinedEnergySensorDescription(
             key="energy_supplied",
             translation_key="combiner_energy_supplied",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,
@@ -329,7 +330,7 @@ class TestCombinedEnergyReadingsSensor:
         description = CombinedEnergySensorDescription(
             key="energy_supplied",
             translation_key="energy_supplied",
-            state_class=SensorStateClass.TOTAL,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY,
             suggested_display_precision=2,

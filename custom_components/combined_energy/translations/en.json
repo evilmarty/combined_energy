@@ -21,7 +21,7 @@
   "issues": {
     "needs_reconfigure": {
       "title": "Reconfiguration required",
-      "description": "This entry was migrated and needs to be reconfigured. Open the integration and run reconfigure."
+      "description": "This integration was upgraded and now requires reconfiguration before it can run correctly.\n\nTo fix this:\n1. Open **Settings → Devices & services**.\n2. Open **Combined Energy**.\n3. Select **Reconfigure** and complete the prompts.\n\nReconfiguring refreshes connection details and applies the updated sensor/statistics behavior."
     }
   },
   "entity": {

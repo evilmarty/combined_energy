@@ -14,9 +14,11 @@ from .const import (
     CONF_STALE_ENTITY_CLEANUP_PENDING,
     DATA_BRIDGE_CLIENT,
     DATA_COORDINATOR,
+    DATA_READINGS_STORE,
     DOMAIN,
 )
 from .coordinator import CombinedEnergyReadingsCoordinator
+from .storage import ReadingsStore
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -54,9 +56,11 @@ async def async_setup_entry(
     """Set up Combined Energy from a config entry."""
     try:
         client = await get_bridge_client(hass=hass, data=entry.data)
+        readings_store = ReadingsStore(hass=hass, config_entry=entry)
         coordinator = CombinedEnergyReadingsCoordinator(
             hass=hass,
             client=client,
+            readings_store=readings_store,
             config_entry=entry,
         )
         await client.async_start()
@@ -66,6 +70,7 @@ async def async_setup_entry(
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         DATA_BRIDGE_CLIENT: client,
         DATA_COORDINATOR: coordinator,
+        DATA_READINGS_STORE: readings_store,
     }
     entry.runtime_data = coordinator
 

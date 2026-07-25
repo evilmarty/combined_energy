@@ -212,7 +212,7 @@ async def test_publish_logging_start_uses_command_topic(fixture_path):
     hass.loop = asyncio.get_running_loop()
     client = MqttBridgeClient(hass, bootstrap)
     client._mqtt_client = MagicMock()  # noqa: SLF001
-    client._mqtt_client.publish.return_value = (0, 1)
+    client._mqtt_client.publish.return_value = (0, 1)  # noqa: SLF001
 
     client.publish_logging_start()
 

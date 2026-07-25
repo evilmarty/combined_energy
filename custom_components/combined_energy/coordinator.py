@@ -5,14 +5,18 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 
-from custom_components.combined_energy.bridge import MqttBridgeClient
+from custom_components.combined_energy.bridge import (
+    BridgeConnectionError,
+    MqttBridgeClient,
+)
 from custom_components.combined_energy.const import (
     LOGGER,
     MQTT_READINGS_TOPIC_FILTER,
-    READINGS_WATCHDOG_INTERVAL,
     READINGS_COORDINATOR_NAME,
+    READINGS_WATCHDOG_INTERVAL,
 )
 from custom_components.combined_energy.models import Readings
+from custom_components.combined_energy.storage import ReadingsStore
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -31,6 +35,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         self,
         hass: HomeAssistant,
         client: MqttBridgeClient,
+        readings_store: ReadingsStore,
         config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
     ) -> None:
         """Initialize readings coordinator."""
@@ -48,10 +53,12 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         self._last_message_received_at: datetime | None = None
         self._last_watchdog_check_at: datetime | None = None
         self._watchdog_unsub: Callable[[], None] | None = None
+        self._readings_store = readings_store
         LOGGER.debug(
             "Subscribing readings coordinator to topic %s", self._readings_topic
         )
         self.client.subscribe(self._readings_topic, self._handle_readings_message)
+        self._check_for_stale_messages()
 
     @callback
     def _schedule_refresh(self) -> None:
@@ -101,7 +108,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             try:
                 self.client.publish_logging_start()
                 LOGGER.debug("triggered logging start command")
-            except Exception:
+            except BridgeConnectionError:
                 LOGGER.exception("Failed to publish MQTT logging start command")
         self._last_watchdog_check_at = check_time
 
@@ -113,4 +120,12 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             len(payload),
         )
         self._last_message_received_at = datetime.now(UTC)
-        self.async_set_updated_data(Readings.from_mqtt_message(payload))
+        self.hass.async_create_task(self._async_process_readings_message(payload))
+
+    async def _async_process_readings_message(self, payload: bytes) -> None:
+        """Parse, normalize, and publish new MQTT readings."""
+        readings = Readings.from_mqtt_message(payload)
+        accumulated = await self._readings_store.async_record_readings(readings)
+        if accumulated is None:
+            return
+        self.async_set_updated_data(accumulated)

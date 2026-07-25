@@ -6,16 +6,16 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
 
-from custom_components.combined_energy.mqtt_parser import parse_mqtt_readings_message
 from custom_components.combined_energy.const import (
-    INSTALLATION_DEVICE_TYPE_ENERGY_BALANCE,
     INSTALLATION_DEVICE_TYPE_COMBINER,
-    INSTALLATION_DEVICE_TYPE_GENERIC_CONSUMER,
+    INSTALLATION_DEVICE_TYPE_ENERGY_BALANCE,
     INSTALLATION_DEVICE_TYPE_GATEWAY,
+    INSTALLATION_DEVICE_TYPE_GENERIC_CONSUMER,
     INSTALLATION_DEVICE_TYPE_GRID_METER,
     INSTALLATION_DEVICE_TYPE_SOLAR_PV,
     INSTALLATION_DEVICE_TYPE_WATER_HEATER,
 )
+from custom_components.combined_energy.mqtt_parser import parse_mqtt_readings_message
 
 
 def now() -> datetime:
@@ -196,6 +196,7 @@ class SystemReading(CommonDeviceReadings):
     state: dict[str, Any] | None = None
     meta: dict[str, Any] | None = None
     temperature: float | None = None
+
 
 class CombinerReading(CommonDeviceReadings):
     """Readings for the Combiner device."""

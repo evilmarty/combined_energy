@@ -33,9 +33,8 @@ def iter_readings_messages(log_text: str):
     for raw_line in log_text.splitlines():
         line = raw_line.rstrip("\n")
         topic_match = TOPIC_LINE_RE.match(line)
-        if (
-            topic_match is not None
-            and READINGS_TOPIC_FRAGMENT in topic_match.group("topic")
+        if topic_match is not None and READINGS_TOPIC_FRAGMENT in topic_match.group(
+            "topic"
         ):
             if current_topic is not None:
                 yield current_topic, "\n".join(current_payload_lines)
@@ -64,7 +63,9 @@ def convert_log_to_json(log_path: Path, output_path: Path) -> tuple[int, int]:
     failures = 0
 
     log_text = log_path.read_text(encoding="utf-8", errors="replace")
-    for index, (topic, payload_text) in enumerate(iter_readings_messages(log_text), start=1):
+    for index, (topic, payload_text) in enumerate(
+        iter_readings_messages(log_text), start=1
+    ):
         try:
             payload = extract_readings_payload(payload_text)
             readings = Readings.from_mqtt_message(payload)

@@ -10,7 +10,12 @@ from custom_components.combined_energy.bridge import BridgeBootstrap, MqttBridge
 from custom_components.combined_energy.coordinator import (
     CombinedEnergyReadingsCoordinator,
 )
-from custom_components.combined_energy.models import Installation, Readings
+from custom_components.combined_energy.models import (
+    GridMeterReading,
+    Installation,
+    Readings,
+)
+from custom_components.combined_energy.storage import ReadingsStore
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -24,6 +29,7 @@ def mock_hass():
     except RuntimeError:
         hass.loop = MagicMock()
     hass.async_create_task = asyncio.create_task
+    hass.data = {}
     return hass
 
 
@@ -55,17 +61,24 @@ def bridge_client(mock_hass, fixture_path):
     return MqttBridgeClient(mock_hass, bootstrap)
 
 
+@pytest.fixture
+def readings_store(mock_hass, mock_entry):
+    """Return a readings store for coordinator tests."""
+    return ReadingsStore(mock_hass, mock_entry)
+
+
 @pytest.mark.asyncio
 async def test_coordinator_updates_from_mqtt_listener(
     bridge_client: MqttBridgeClient,
     mock_hass,
     mock_entry,
+    readings_store,
     sample_readings: Readings,
     example_log_payload: bytes,
 ):
     """Coordinator parses subscribed readings messages."""
     coordinator = CombinedEnergyReadingsCoordinator(
-        mock_hass, bridge_client, mock_entry
+        mock_hass, bridge_client, readings_store, mock_entry
     )
     assert coordinator.data is None
 
@@ -73,8 +86,50 @@ async def test_coordinator_updates_from_mqtt_listener(
         "cet-ecn/21723/dmg/readings/stream",
         example_log_payload,
     )
+    await asyncio.sleep(0)
 
-    assert coordinator.data == sample_readings
+    assert coordinator.data is not None
+    source_grid = next(
+        device
+        for device in sample_readings.devices
+        if isinstance(device, GridMeterReading)
+    )
+    result_grid = next(
+        device
+        for device in coordinator.data.devices
+        if isinstance(device, GridMeterReading)
+    )
+    assert result_grid.energy_consumed == abs(source_grid.energy_consumed)
+
+
+@pytest.mark.asyncio
+async def test_coordinator_ignores_duplicate_period_messages(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+    readings_store,
+    example_log_payload: bytes,
+):
+    """Duplicate period messages should not double-count totals."""
+    coordinator = CombinedEnergyReadingsCoordinator(
+        mock_hass, bridge_client, readings_store, mock_entry
+    )
+
+    await coordinator._async_process_readings_message(example_log_payload)  # noqa: SLF001
+    first_grid = next(
+        device
+        for device in coordinator.data.devices
+        if isinstance(device, GridMeterReading)
+    )
+    first_energy_consumed = first_grid.energy_consumed
+
+    await coordinator._async_process_readings_message(example_log_payload)  # noqa: SLF001
+    second_grid = next(
+        device
+        for device in coordinator.data.devices
+        if isinstance(device, GridMeterReading)
+    )
+    assert second_grid.energy_consumed == first_energy_consumed
 
 
 @pytest.mark.asyncio
@@ -82,10 +137,13 @@ async def test_watchdog_triggers_logging_start_when_no_new_messages(
     bridge_client: MqttBridgeClient,
     mock_hass,
     mock_entry,
+    readings_store,
     sample_readings: Readings,
 ):
     """Watchdog requests logging start when no fresh message arrived."""
-    coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
+    coordinator = CombinedEnergyReadingsCoordinator(
+        mock_hass, bridge_client, readings_store, mock_entry
+    )
     bridge_client.publish_logging_start = MagicMock()
 
     coordinator._last_message_received_at = None  # noqa: SLF001
@@ -101,10 +159,13 @@ async def test_watchdog_skips_logging_start_when_new_message_received(
     bridge_client: MqttBridgeClient,
     mock_hass,
     mock_entry,
+    readings_store,
     sample_readings: Readings,
 ):
     """Scheduled update does not request logging start when message is fresh."""
-    coordinator = CombinedEnergyReadingsCoordinator(mock_hass, bridge_client, mock_entry)
+    coordinator = CombinedEnergyReadingsCoordinator(
+        mock_hass, bridge_client, readings_store, mock_entry
+    )
     bridge_client.publish_logging_start = MagicMock()
 
     coordinator.async_set_updated_data(sample_readings)

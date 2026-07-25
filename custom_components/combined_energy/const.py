@@ -11,6 +11,7 @@ LOGGER = logging.getLogger(__package__)
 # Runtime data keys.
 DATA_BRIDGE_CLIENT: Final[str] = "bridge_client"
 DATA_COORDINATOR: Final[str] = "coordinator"
+DATA_READINGS_STORE: Final[str] = "readings_store"
 
 # Config entry keys.
 CONF_MQTT_PASSWORD: Final[str] = "mqtt_password"
@@ -27,6 +28,11 @@ READINGS_WATCHDOG_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 READINGS_COORDINATOR_NAME: Final[str] = "readings"
 ENERGY_ZERO_EPSILON: Final[float] = 1e-9
 ENERGY_STATE_ROUNDING_DIGITS: Final[int] = 6
+READINGS_STORAGE_VERSION: Final[int] = 1
+READINGS_STORAGE_KEY_SUFFIX: Final[str] = "_readings_state"
+READINGS_OUTLIER_POWER_MULTIPLIER: Final[float] = 8.0
+READINGS_OUTLIER_MIN_WH: Final[float] = 25.0
+READINGS_OUTLIER_MAX_WITHOUT_POWER_WH: Final[float] = 250.0
 
 INSTALLATION_DEVICE_TYPE_GATEWAY: Final[str] = "GATEWAY"
 INSTALLATION_DEVICE_TYPE_SOLAR_PV: Final[str] = "SOLAR_PV"

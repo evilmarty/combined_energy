@@ -48,7 +48,9 @@ async def test_async_step_user_sets_unique_id_from_installation_id(fixture_path)
 
 
 @pytest.mark.asyncio
-async def test_async_step_user_uses_default_name_when_installation_has_no_name(fixture_path):
+async def test_async_step_user_uses_default_name_when_installation_has_no_name(
+    fixture_path,
+):
     """Fallback to integration default when installation has no name."""
     installation = Installation.model_validate_json(
         (fixture_path / "installation.json").read_text()
