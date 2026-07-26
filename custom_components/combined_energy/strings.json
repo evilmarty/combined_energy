@@ -23,6 +23,17 @@
       "description": "This integration was upgraded and now requires reconfiguration before it can run correctly.\n\nTo fix this:\n1. Open **Settings -> Devices & services**.\n2. Open **Combined Energy**.\n3. Select **Reconfigure** and complete the prompts.\n\nReconfiguring refreshes connection details and applies the updated sensor/statistics behavior."
     }
   },
+  "repair_flow": {
+    "step": {
+      "confirm": {
+        "title": "Start reconfiguration",
+        "description": "Starting this repair opens the Combined Energy reconfigure flow so you can update the bridge connection details."
+      }
+    },
+    "abort": {
+      "reconfigure_started": "Reconfigure flow started. Complete the prompts to finish the repair."
+    }
+  },
   "entity": {
     "sensor": {
       "energy_consumed": {

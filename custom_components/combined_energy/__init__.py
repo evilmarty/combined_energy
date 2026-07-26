@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -22,36 +21,12 @@ from .coordinator import (
     CombinedEnergyIntelCoordinator,
     CombinedEnergyReadingsCoordinator,
 )
+from .reconfigure import async_start_reconfigure_if_needed, needs_reconfigure_issue_id
 from .storage import ReadingsStore
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 type CombinedEnergyConfigEntry = ConfigEntry[CombinedEnergyReadingsCoordinator]
-
-
-def _needs_reconfigure_issue_id(entry: ConfigEntry) -> str:
-    """Build issue id for entries that need reconfigure."""
-    return f"{entry.entry_id}_needs_reconfigure"
-
-
-async def _async_start_reconfigure_if_needed(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> None:
-    """Start a reconfigure flow when one is not already in progress."""
-    for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN):
-        context = flow.get("context", {})
-        if (
-            context.get("source") == config_entries.SOURCE_RECONFIGURE
-            and context.get("entry_id") == entry.entry_id
-        ):
-            return
-    await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={
-            "source": config_entries.SOURCE_RECONFIGURE,
-            "entry_id": entry.entry_id,
-        },
-    )
 
 
 async def async_setup_entry(
@@ -107,10 +82,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ir.async_create_issue(
             hass,
             DOMAIN,
-            _needs_reconfigure_issue_id(entry),
+            needs_reconfigure_issue_id(entry.entry_id),
             is_fixable=True,
+            is_persistent=True,
             severity=ir.IssueSeverity.WARNING,
             translation_key="needs_reconfigure",
+            data={"entry_id": entry.entry_id},
         )
-        await _async_start_reconfigure_if_needed(hass, entry)
+        await async_start_reconfigure_if_needed(hass, entry.entry_id)
     return True

@@ -13,6 +13,7 @@ from homeassistant.helpers import issue_registry as ir
 
 from .bridge import BridgeBootstrap, BridgeBootstrapError, validate_bridge_host
 from .const import CONF_STALE_ENTITY_CLEANUP_PENDING, DEFAULT_NAME, DOMAIN, LOGGER
+from .reconfigure import needs_reconfigure_issue_id
 from .sensor import cleanup_stale_sensor_entities
 
 
@@ -85,7 +86,7 @@ class CombinedEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ir.async_delete_issue(
                     self.hass,
                     DOMAIN,
-                    f"{entry.entry_id}_needs_reconfigure",
+                    needs_reconfigure_issue_id(entry.entry_id),
                 )
                 updated_data = {**entry.data, **bootstrap.as_config_data()}
                 updated_data.pop(CONF_STALE_ENTITY_CLEANUP_PENDING, None)
