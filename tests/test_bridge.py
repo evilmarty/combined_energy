@@ -220,3 +220,28 @@ async def test_publish_logging_start_uses_command_topic(fixture_path):
         client.topic("dmg/command/logging/start"),
         "",
     )
+
+
+@pytest.mark.asyncio
+async def test_publish_request_intel_uses_request_topic(fixture_path):
+    """Publish the intel request command to the bridge topic."""
+    installation = Installation.model_validate_json(
+        (fixture_path / "installation.json").read_text()
+    )
+    bootstrap = BridgeBootstrap(
+        bridge_host="127.0.0.1",
+        mqtt_password="bridge-secret",
+        installation=installation,
+    )
+    hass = MagicMock()
+    hass.loop = asyncio.get_running_loop()
+    client = MqttBridgeClient(hass, bootstrap)
+    client._mqtt_client = MagicMock()  # noqa: SLF001
+    client._mqtt_client.publish.return_value = (0, 1)  # noqa: SLF001
+
+    client.publish_request_intel()
+
+    client._mqtt_client.publish.assert_called_once_with(  # noqa: SLF001
+        client.topic("dmg/request/1.2/intel"),
+        "",
+    )

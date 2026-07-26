@@ -8,11 +8,13 @@ import pytest
 
 from custom_components.combined_energy.bridge import BridgeBootstrap, MqttBridgeClient
 from custom_components.combined_energy.coordinator import (
+    CombinedEnergyIntelCoordinator,
     CombinedEnergyReadingsCoordinator,
 )
 from custom_components.combined_energy.models import (
     GridMeterReading,
     Installation,
+    Intel,
     Readings,
 )
 from custom_components.combined_energy.storage import ReadingsStore
@@ -175,3 +177,39 @@ async def test_watchdog_skips_logging_start_when_new_message_received(
 
     assert result == sample_readings
     bridge_client.publish_logging_start.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_intel_coordinator_updates_from_mqtt_listener(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+):
+    """Coordinator parses subscribed intel messages."""
+    bridge_client.publish_request_intel = MagicMock()
+    coordinator = CombinedEnergyIntelCoordinator(mock_hass, bridge_client, mock_entry)
+    bridge_client.publish_request_intel.assert_called_once()
+    assert coordinator.data is None
+
+    payload = b"""{
+        "installationId": 5076,
+        "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+        "version": 1.2,
+        "tariffDetails": [],
+        "solarEnergyForecast": [],
+        "generalEnergyUsagePattern": {
+            "periodEndHour": [],
+            "energyConsumedAvg": []
+        },
+        "nmi": "3116633733",
+        "waterDischargePattern": []
+    }"""
+    coordinator._handle_intel_message(  # noqa: SLF001
+        "cet-ecn/21723/dmg/response/1.2/intel",
+        payload,
+    )
+    await asyncio.sleep(0)
+
+    assert coordinator.data is not None
+    assert isinstance(coordinator.data, Intel)
+    assert coordinator.data.installation_id == 5076

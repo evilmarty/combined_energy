@@ -20,6 +20,7 @@ from custom_components.combined_energy.const import (
     MQTT_COMMAND_LOGGING_START_TOPIC,
     MQTT_PORT_WEBSOCKET,
     MQTT_RECONNECT_DELAY,
+    MQTT_REQUEST_INTEL_TOPIC,
     MQTT_TOPIC_PREFIX,
     MQTT_USERNAME_SYSTEM,
     SYSTEM_KEY_PATH,
@@ -183,6 +184,10 @@ class MqttBridgeClient:
     def publish_logging_start(self) -> None:
         """Publish the logging start command to the bridge broker."""
         self.publish(self.topic(MQTT_COMMAND_LOGGING_START_TOPIC), "")
+
+    def publish_request_intel(self) -> None:
+        """Publish the intel request command to the bridge broker."""
+        self.publish(self.topic(MQTT_REQUEST_INTEL_TOPIC), "")
 
     async def async_start(self) -> None:
         """Start MQTT client and ensure first connection succeeds."""

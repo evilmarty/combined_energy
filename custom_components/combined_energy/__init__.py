@@ -14,10 +14,14 @@ from .const import (
     CONF_STALE_ENTITY_CLEANUP_PENDING,
     DATA_BRIDGE_CLIENT,
     DATA_COORDINATOR,
+    DATA_INTEL_COORDINATOR,
     DATA_READINGS_STORE,
     DOMAIN,
 )
-from .coordinator import CombinedEnergyReadingsCoordinator
+from .coordinator import (
+    CombinedEnergyIntelCoordinator,
+    CombinedEnergyReadingsCoordinator,
+)
 from .storage import ReadingsStore
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -63,6 +67,11 @@ async def async_setup_entry(
             readings_store=readings_store,
             config_entry=entry,
         )
+        intel_coordinator = CombinedEnergyIntelCoordinator(
+            hass=hass,
+            client=client,
+            config_entry=entry,
+        )
         await client.async_start()
     except (BridgeBootstrapError, BridgeConnectionError, TimeoutError) as ex:
         raise ConfigEntryNotReady from ex
@@ -70,6 +79,7 @@ async def async_setup_entry(
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         DATA_BRIDGE_CLIENT: client,
         DATA_COORDINATOR: coordinator,
+        DATA_INTEL_COORDINATOR: intel_coordinator,
         DATA_READINGS_STORE: readings_store,
     }
     entry.runtime_data = coordinator

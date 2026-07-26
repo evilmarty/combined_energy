@@ -10,12 +10,14 @@ from custom_components.combined_energy.bridge import (
     MqttBridgeClient,
 )
 from custom_components.combined_energy.const import (
+    INTEL_COORDINATOR_NAME,
     LOGGER,
     MQTT_READINGS_TOPIC_FILTER,
+    MQTT_RESPONSE_INTEL_TOPIC,
     READINGS_COORDINATOR_NAME,
     READINGS_WATCHDOG_INTERVAL,
 )
-from custom_components.combined_energy.models import Readings
+from custom_components.combined_energy.models import Intel, Readings
 from custom_components.combined_energy.storage import ReadingsStore
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -129,3 +131,60 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
         if accumulated is None:
             return
         self.async_set_updated_data(accumulated)
+
+
+class CombinedEnergyIntelCoordinator(DataUpdateCoordinator[Intel]):
+    """Update coordinator for MQTT intel responses."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        client: MqttBridgeClient,
+        config_entry: ConfigEntry | None | UndefinedType = UNDEFINED,
+    ) -> None:
+        """Initialize intel coordinator."""
+        super().__init__(
+            hass=hass,
+            logger=LOGGER,
+            config_entry=config_entry,
+            name=INTEL_COORDINATOR_NAME,
+            update_interval=None,
+            update_method=self._async_update,
+            always_update=True,
+        )
+        self.client = client
+        LOGGER.debug("Subscribing intel coordinator to topic %s", self._intel_topic)
+        self.client.subscribe(self._intel_topic, self._handle_intel_message)
+        self.request_intel()
+
+    @property
+    def _intel_topic(self) -> str:
+        """Topic for intel response messages."""
+        return self.client.topic(MQTT_RESPONSE_INTEL_TOPIC)
+
+    async def _async_update(self) -> Intel:
+        """Return latest intel payload from MQTT stream."""
+        if self.data is not None:
+            return self.data
+        raise UpdateFailed("No MQTT intel payload available yet")
+
+    def _handle_intel_message(self, topic: str, payload: bytes) -> None:
+        """Parse and publish new intel payloads."""
+        LOGGER.debug(
+            "Processing MQTT intel message topic=%s payload_bytes=%s",
+            topic,
+            len(payload),
+        )
+        self.hass.async_create_task(self._async_process_intel_message(payload))
+
+    def request_intel(self) -> None:
+        """Request an intel payload from the bridge."""
+        try:
+            self.client.publish_request_intel()
+        except BridgeConnectionError:
+            LOGGER.exception("Failed to publish MQTT intel request command")
+
+    async def _async_process_intel_message(self, payload: bytes) -> None:
+        """Parse and publish new intel payload."""
+        intel = Intel.model_validate_json(payload)
+        self.async_set_updated_data(intel)
