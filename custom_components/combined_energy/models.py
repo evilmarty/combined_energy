@@ -312,6 +312,33 @@ class Intel(BaseModel):
         alias="waterDischargePattern"
     )
 
+    def tariff_at(self, dt: datetime) -> TariffDetail | None:
+        """Get tariff detail that applies at a specific datetime."""
+        if not self.tariff_details:
+            return None
+        for tariff in self.tariff_details:
+            if tariff.cost_at(dt) is not None:
+                return tariff
+        return self.tariff_details[0]
+
+    def cost_at(self, dt: datetime) -> float | None:
+        """Get tariff cost at a specific datetime."""
+        tariff = self.tariff_at(dt)
+        if tariff is None:
+            return None
+        return tariff.cost_at(dt)
+
+    def next_cost_change(self, dt: datetime) -> datetime | None:
+        """Get next datetime when any matching tariff cost changes."""
+        next_changes = [
+            change
+            for tariff in self.tariff_details
+            if (change := tariff.next_cost_change(dt)) is not None
+        ]
+        if not next_changes:
+            return None
+        return min(next_changes)
+
 
 class CommonDeviceReadings(BaseModel):
     """Readings for a particular device."""

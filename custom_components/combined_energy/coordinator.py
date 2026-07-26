@@ -153,9 +153,18 @@ class CombinedEnergyIntelCoordinator(DataUpdateCoordinator[Intel]):
             always_update=True,
         )
         self.client = client
+        self._intel_request_sent = False
         LOGGER.debug("Subscribing intel coordinator to topic %s", self._intel_topic)
         self.client.subscribe(self._intel_topic, self._handle_intel_message)
-        self.request_intel()
+
+    @callback
+    def _schedule_refresh(self) -> None:
+        """Trigger intel request when coordinator becomes active."""
+        super()._schedule_refresh()
+        if self._intel_request_sent:
+            return
+        if self.request_intel():
+            self._intel_request_sent = True
 
     @property
     def _intel_topic(self) -> str:
@@ -177,14 +186,20 @@ class CombinedEnergyIntelCoordinator(DataUpdateCoordinator[Intel]):
         )
         self.hass.async_create_task(self._async_process_intel_message(payload))
 
-    def request_intel(self) -> None:
+    def request_intel(self) -> bool:
         """Request an intel payload from the bridge."""
         try:
             self.client.publish_request_intel()
         except BridgeConnectionError:
             LOGGER.exception("Failed to publish MQTT intel request command")
+            return False
+        else:
+            return True
 
     async def _async_process_intel_message(self, payload: bytes) -> None:
         """Parse and publish new intel payload."""
-        intel = Intel.model_validate_json(payload)
+        json_start = payload.find(b"{")
+        if json_start < 0:
+            raise ValueError("No JSON object found in intel MQTT payload")
+        intel = Intel.model_validate_json(payload[json_start:])
         self.async_set_updated_data(intel)

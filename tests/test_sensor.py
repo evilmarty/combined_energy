@@ -6,18 +6,22 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.combined_energy.coordinator import (
+    CombinedEnergyIntelCoordinator,
     CombinedEnergyReadingsCoordinator,
 )
 from custom_components.combined_energy.models import (
     Device,
     GridMeterReading,
     Installation,
+    Intel,
     Readings,
     SystemReading,
 )
 from custom_components.combined_energy.sensor import (
     CombinedEnergyReadingsSensor,
     CombinedEnergySensorDescription,
+    CombinedEnergyTariffSensor,
+    PriceSensor,
 )
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfEnergy
@@ -343,3 +347,70 @@ class TestCombinedEnergyReadingsSensor:
         assert sensor.device_info["connections"] == {
             (CONNECTION_NETWORK_MAC, "A1:B2:C3:D4:E5:F6")
         }
+
+
+class TestCombinedEnergyTariffSensor:
+    """Tests for tariff sensors backed by intel coordinator."""
+
+    @pytest.fixture
+    def intel_data(self) -> Intel:
+        """Sample intel payload with tariff details."""
+        return Intel.model_validate(
+            {
+                "installationId": 5076,
+                "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+                "version": 1.2,
+                "tariffDetails": [
+                    {
+                        "tariffType": "TOU",
+                        "costs": [25.62],
+                        "months": list(range(1, 13)),
+                        "dnspCode": "EX",
+                        "feedIn": 2.0,
+                        "retailerCode": "ALINTA_ENERGY",
+                        "days": [1, 2, 3, 4, 5, 6, 7],
+                        "periods": [0],
+                        "state": "QLD",
+                        "dailyFee": 132.92,
+                        "planId": 55232,
+                    }
+                ],
+                "solarEnergyForecast": [],
+                "generalEnergyUsagePattern": {
+                    "periodEndHour": [],
+                    "energyConsumedAvg": [],
+                },
+                "nmi": "3116633733",
+                "waterDischargePattern": [],
+            }
+        )
+
+    @pytest.fixture
+    def intel_coordinator(self, intel_data):
+        """Mock intel coordinator with current tariff data."""
+        return MagicMock(spec=CombinedEnergyIntelCoordinator, data=intel_data)
+
+    def test_tariff_daily_fee_sensor_value(self, installation, intel_coordinator, mock_hass):
+        """Tariff daily fee should be exposed as dollars."""
+        description = CombinedEnergySensorDescription(
+            key="daily_fee",
+            translation_key="tariff_details_daily_fee",
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="AUD/kWh",
+            device_class=SensorDeviceClass.MONETARY,
+        )
+        sensor = CombinedEnergyTariffSensor(
+            installation=installation,
+            coordinator=intel_coordinator,
+            description=description,
+        )
+        sensor.hass = mock_hass
+
+        assert sensor.native_value == 1.3292
+
+    def test_price_sensor_value(self, installation, intel_coordinator, mock_hass):
+        """Price sensor should use tariff cost_at in dollars."""
+        sensor = PriceSensor(installation=installation, coordinator=intel_coordinator)
+        sensor.hass = mock_hass
+
+        assert sensor.native_value == 0.2562

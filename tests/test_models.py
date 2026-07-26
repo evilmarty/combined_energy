@@ -327,6 +327,75 @@ class TestIntel:
         assert intel.general_energy_usage_pattern.energy_consumed_avg == [-79.0, -78.0]
         assert intel.water_discharge_pattern[0].profiles[0].dow_type == "WD"
 
+    def test_cost_at(self):
+        """Resolve cost from tariff details on Intel."""
+        intel = Intel.model_validate(
+            {
+                "installationId": 5076,
+                "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+                "version": 1.2,
+                "tariffDetails": [
+                    {
+                        "tariffType": "TOU",
+                        "costs": [25.62, 30.02],
+                        "months": [7],
+                        "dnspCode": "EX",
+                        "feedIn": 2,
+                        "retailerCode": "ALINTA_ENERGY",
+                        "days": [1, 2, 3, 4, 5],
+                        "periods": [0, 7],
+                        "state": "QLD",
+                        "dailyFee": 132.92,
+                        "planId": 55232,
+                    }
+                ],
+                "solarEnergyForecast": [],
+                "generalEnergyUsagePattern": {
+                    "periodEndHour": [],
+                    "energyConsumedAvg": [],
+                },
+                "nmi": "3116633733",
+                "waterDischargePattern": [],
+            }
+        )
+        assert intel.cost_at(datetime(2026, 7, 20, 6, 30)) == 25.62
+        assert intel.cost_at(datetime(2026, 7, 20, 8, 0)) == 30.02
+
+    def test_next_cost_change(self):
+        """Resolve next cost transition from tariff details on Intel."""
+        intel = Intel.model_validate(
+            {
+                "installationId": 5076,
+                "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+                "version": 1.2,
+                "tariffDetails": [
+                    {
+                        "tariffType": "TOU",
+                        "costs": [25.62, 30.02],
+                        "months": [7],
+                        "dnspCode": "EX",
+                        "feedIn": 2,
+                        "retailerCode": "ALINTA_ENERGY",
+                        "days": [1, 2, 3, 4, 5],
+                        "periods": [0, 7],
+                        "state": "QLD",
+                        "dailyFee": 132.92,
+                        "planId": 55232,
+                    }
+                ],
+                "solarEnergyForecast": [],
+                "generalEnergyUsagePattern": {
+                    "periodEndHour": [],
+                    "energyConsumedAvg": [],
+                },
+                "nmi": "3116633733",
+                "waterDischargePattern": [],
+            }
+        )
+        assert intel.next_cost_change(datetime(2026, 7, 20, 6, 30)) == datetime(
+            2026, 7, 20, 7, 0
+        )
+
 
 class TestTariffDetail:
     """Test TariffDetail utility methods."""

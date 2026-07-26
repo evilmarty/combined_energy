@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from datetime import datetime
 from typing import Any
 
@@ -11,6 +11,7 @@ from custom_components.combined_energy.models import (
     Device,
     Installation,
     ReadingsDevices,
+    TariffDetail,
 )
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -32,18 +33,23 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DATA_BRIDGE_CLIENT,
     DATA_COORDINATOR,
+    DATA_INTEL_COORDINATOR,
     DOMAIN,
     ENERGY_STATE_ROUNDING_DIGITS,
     ENERGY_ZERO_EPSILON,
     INSTALLATION_DEVICE_TYPE_COMBINER,
     LOGGER,
 )
-from .coordinator import CombinedEnergyReadingsCoordinator
+from .coordinator import (
+    CombinedEnergyIntelCoordinator,
+    CombinedEnergyReadingsCoordinator,
+)
 
 
 class CombinedEnergySensorDescription(SensorEntityDescription, frozen_or_thawed=True):
@@ -1259,6 +1265,27 @@ COMBINER_SENSOR_DESCRIPTIONS = [
     ),
 ]
 
+SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
+    CombinedEnergySensorDescription(
+        key="daily_fee",
+        translation_key="tariff_details_daily_fee",
+        icon="mdi:cash-sync",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+    ),
+    CombinedEnergySensorDescription(
+        key="feed_in",
+        translation_key="tariff_details_feed_in_cost",
+        icon="mdi:cash-plus",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+    ),
+]
+
 # Combiner isn't a real device but it's included in the readings with all the other devices
 COMBINER_DEVICE = Device(
     id=0,
@@ -1288,10 +1315,18 @@ async def async_setup_entry(
     coordinator: CombinedEnergyReadingsCoordinator = hass.data[DOMAIN][entry.entry_id][
         DATA_COORDINATOR
     ]
+    intel_coordinator: CombinedEnergyIntelCoordinator = hass.data[DOMAIN][entry.entry_id][
+        DATA_INTEL_COORDINATOR
+    ]
     installation = client.bootstrap.installation
 
     LOGGER.info("Setting up Combined Energy sensors")
-    async_add_entities(_generate_readings_sensors(installation, coordinator))
+    async_add_entities(
+        [
+            *_generate_readings_sensors(installation, coordinator),
+            *_generate_tariff_details_sensors(installation, intel_coordinator),
+        ]
+    )
 
 
 def _sensor_unique_id(installation_id: int, device_id: int, key: str) -> str:
@@ -1357,6 +1392,18 @@ def _generate_readings_sensors(
                 description=description,
                 coordinator=coordinator,
             )
+
+
+def _generate_tariff_details_sensors(
+    installation: Installation,
+    coordinator: CombinedEnergyIntelCoordinator,
+) -> Generator[CombinedEnergyTariffSensor]:
+    """Generate tariff sensors from intel data."""
+    yield PriceSensor(installation=installation, coordinator=coordinator)
+    for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS:
+        yield CombinedEnergyTariffSensor(
+            installation=installation, coordinator=coordinator, description=description
+        )
 
 
 class CombinedEnergyReadingsSensor(
@@ -1449,3 +1496,131 @@ class CombinedEnergyReadingsSensor(
         if isinstance(value, float):
             return self._normalize_float_value(value)
         return value
+
+
+class CombinedEnergyTariffSensor(
+    CoordinatorEntity[CombinedEnergyIntelCoordinator], SensorEntity
+):
+    """Representation of a Combined Energy tariff sensor."""
+
+    entity_description: SensorEntityDescription
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        installation: Installation,
+        coordinator: CombinedEnergyIntelCoordinator,
+        description: CombinedEnergySensorDescription,
+    ) -> None:
+        """Initialise Tariff Sensor."""
+        super().__init__(coordinator)
+        self._installation_timezone = installation.timezone
+        identifier = f"install_{installation.id}-tariff-details"
+        self.entity_description = description
+        self._attr_unique_id = f"{identifier}-{description.key}"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, identifier)})
+
+    def _tariff_details(self) -> list[TariffDetail]:
+        """Return all available tariff details."""
+        if self.coordinator.data is None:
+            return []
+        return self.coordinator.data.tariff_details
+
+    def _active_tariff(self) -> TariffDetail | None:
+        """Return tariff applicable at current local time."""
+        intel = self.coordinator.data
+        if intel is None:
+            return None
+        now = datetime.now(tz=self._installation_timezone)
+        return intel.tariff_at(now)
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the value reported by the sensor."""
+        tariff = self._active_tariff()
+        if tariff is None:
+            return None
+        value = getattr(tariff, self.entity_description.key, None)
+        if value is None:
+            return None
+        return float(value) / 100.0
+
+
+class PriceSensor(CombinedEnergyTariffSensor):
+    """Sensor for current tariff usage price."""
+
+    _cancel_next_refresh: Callable[[], None] | None = None
+
+    def __init__(
+        self,
+        installation: Installation,
+        coordinator: CombinedEnergyIntelCoordinator,
+    ) -> None:
+        """Initialise Group Price Sensor."""
+        super().__init__(
+            installation=installation,
+            coordinator=coordinator,
+            description=CombinedEnergySensorDescription(
+                key="cost",
+                translation_key="tariff_details_cost",
+                icon="mdi:cash-minus",
+                state_class=SensorStateClass.MEASUREMENT,
+                native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
+                device_class=SensorDeviceClass.MONETARY,
+                suggested_display_precision=2,
+            ),
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        self._schedule_refresh()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Run when entity about to be removed from hass."""
+        await super().async_will_remove_from_hass()
+        if self._cancel_next_refresh:
+            self._cancel_next_refresh()
+            self._cancel_next_refresh = None
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        super()._handle_coordinator_update()
+        self._schedule_refresh()
+
+    def _schedule_refresh(self) -> None:
+        """Schedule a refresh for the next cost change."""
+        if self._cancel_next_refresh:
+            self._cancel_next_refresh()
+            self._cancel_next_refresh = None
+
+        intel = self.coordinator.data
+        if intel is None:
+            return
+
+        now = datetime.now(tz=self._installation_timezone)
+        next_changes = intel.next_cost_change(now)
+        if next_changes is None:
+            return
+
+        self._cancel_next_refresh = async_track_point_in_time(
+            self.hass, self._refresh_price, next_changes
+        )
+
+    def _refresh_price(self, _: datetime) -> None:
+        """Refresh the price sensor."""
+        self.async_write_ha_state()
+        self._schedule_refresh()
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current tariff value."""
+        intel = self.coordinator.data
+        if intel is None:
+            return None
+
+        now = datetime.now(tz=self._installation_timezone)
+        cost = intel.cost_at(now)
+        if cost is None:
+            return None
+        return float(cost) / 100.0

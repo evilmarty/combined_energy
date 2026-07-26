@@ -188,7 +188,7 @@ async def test_intel_coordinator_updates_from_mqtt_listener(
     """Coordinator parses subscribed intel messages."""
     bridge_client.publish_request_intel = MagicMock()
     coordinator = CombinedEnergyIntelCoordinator(mock_hass, bridge_client, mock_entry)
-    bridge_client.publish_request_intel.assert_called_once()
+    bridge_client.publish_request_intel.assert_not_called()
     assert coordinator.data is None
 
     payload = b"""{
@@ -213,3 +213,53 @@ async def test_intel_coordinator_updates_from_mqtt_listener(
     assert coordinator.data is not None
     assert isinstance(coordinator.data, Intel)
     assert coordinator.data.installation_id == 5076
+
+
+@pytest.mark.asyncio
+async def test_intel_coordinator_strips_non_json_prefix(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+):
+    """Coordinator should strip request metadata prefix before JSON parsing."""
+    bridge_client.publish_request_intel = MagicMock()
+    coordinator = CombinedEnergyIntelCoordinator(mock_hass, bridge_client, mock_entry)
+
+    payload = (
+        b" \xc2\xb8\x02 \n\trequestId\x10\x05B\x111785048075796-730\n"
+        b"""{
+        "installationId": 5076,
+        "requestTimeStr": "Mon Jul 20 00:00:00 AEST 2026",
+        "version": 1.2,
+        "tariffDetails": [],
+        "solarEnergyForecast": [],
+        "generalEnergyUsagePattern": {
+            "periodEndHour": [],
+            "energyConsumedAvg": []
+        },
+        "nmi": "3116633733",
+        "waterDischargePattern": []
+    }"""
+    )
+
+    await coordinator._async_process_intel_message(payload)  # noqa: SLF001
+
+    assert coordinator.data is not None
+    assert isinstance(coordinator.data, Intel)
+    assert coordinator.data.installation_id == 5076
+
+
+@pytest.mark.asyncio
+async def test_intel_coordinator_requests_on_schedule_refresh(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+):
+    """Coordinator should request intel when scheduling starts."""
+    bridge_client.publish_request_intel = MagicMock()
+    coordinator = CombinedEnergyIntelCoordinator(mock_hass, bridge_client, mock_entry)
+
+    coordinator._schedule_refresh()  # noqa: SLF001
+    coordinator._schedule_refresh()  # noqa: SLF001
+
+    bridge_client.publish_request_intel.assert_called_once()
