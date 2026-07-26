@@ -390,7 +390,9 @@ class TestCombinedEnergyTariffSensor:
         """Mock intel coordinator with current tariff data."""
         return MagicMock(spec=CombinedEnergyIntelCoordinator, data=intel_data)
 
-    def test_tariff_daily_fee_sensor_value(self, installation, intel_coordinator, mock_hass):
+    def test_tariff_daily_fee_sensor_value(
+        self, installation, intel_coordinator, mock_hass
+    ):
         """Tariff daily fee should be exposed as dollars."""
         description = CombinedEnergySensorDescription(
             key="daily_fee",

@@ -60,7 +60,6 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             "Subscribing readings coordinator to topic %s", self._readings_topic
         )
         self.client.subscribe(self._readings_topic, self._handle_readings_message)
-        self._check_for_stale_messages()
 
     @callback
     def _schedule_refresh(self) -> None:
@@ -73,6 +72,7 @@ class CombinedEnergyReadingsCoordinator(DataUpdateCoordinator[Readings]):
             self._check_for_stale_messages,
             self._watchdog_interval,
         )
+        self._check_for_stale_messages()
 
     @callback
     def _unschedule_refresh(self) -> None:

@@ -190,10 +190,7 @@ class TariffDetail(BaseModel):
     def _hour_fraction(dt: datetime) -> float:
         """Return hour-of-day as a fractional value."""
         return (
-            dt.hour
-            + dt.minute / 60
-            + dt.second / 3600
-            + dt.microsecond / 3_600_000_000
+            dt.hour + dt.minute / 60 + dt.second / 3600 + dt.microsecond / 3_600_000_000
         )
 
     @staticmethod
@@ -219,7 +216,9 @@ class TariffDetail(BaseModel):
             return None
 
         hour_fraction = self._hour_fraction(dt)
-        for index, (start, end) in enumerate(zip(self.periods, self.periods[1:], strict=False)):
+        for index, (start, end) in enumerate(
+            zip(self.periods, self.periods[1:], strict=False)
+        ):
             if start <= hour_fraction < end:
                 return self.costs[min(index, len(self.costs) - 1)]
 

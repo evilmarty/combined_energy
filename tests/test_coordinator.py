@@ -157,6 +157,26 @@ async def test_watchdog_triggers_logging_start_when_no_new_messages(
 
 
 @pytest.mark.asyncio
+async def test_readings_coordinator_requests_logging_on_schedule_refresh(
+    bridge_client: MqttBridgeClient,
+    mock_hass,
+    mock_entry,
+    readings_store,
+):
+    """Coordinator should request logging when scheduling starts."""
+    bridge_client.publish_logging_start = MagicMock()
+    coordinator = CombinedEnergyReadingsCoordinator(
+        mock_hass, bridge_client, readings_store, mock_entry
+    )
+    bridge_client.publish_logging_start.assert_not_called()
+
+    coordinator._schedule_refresh()  # noqa: SLF001
+    coordinator._schedule_refresh()  # noqa: SLF001
+
+    bridge_client.publish_logging_start.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_watchdog_skips_logging_start_when_new_message_received(
     bridge_client: MqttBridgeClient,
     mock_hass,

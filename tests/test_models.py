@@ -433,9 +433,9 @@ class TestTariffDetail:
         assert tariff_detail.next_cost_change(datetime(2026, 7, 20, 8, 15)) == datetime(
             2026, 7, 20, 16, 0
         )
-        assert tariff_detail.next_cost_change(datetime(2026, 7, 20, 23, 30)) == datetime(
-            2026, 7, 21, 0, 0
-        )
-        assert tariff_detail.next_cost_change(datetime(2026, 7, 24, 23, 30)) == datetime(
-            2026, 7, 27, 0, 0
-        )
+        assert tariff_detail.next_cost_change(
+            datetime(2026, 7, 20, 23, 30)
+        ) == datetime(2026, 7, 21, 0, 0)
+        assert tariff_detail.next_cost_change(
+            datetime(2026, 7, 24, 23, 30)
+        ) == datetime(2026, 7, 27, 0, 0)

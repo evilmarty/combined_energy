@@ -1315,9 +1315,9 @@ async def async_setup_entry(
     coordinator: CombinedEnergyReadingsCoordinator = hass.data[DOMAIN][entry.entry_id][
         DATA_COORDINATOR
     ]
-    intel_coordinator: CombinedEnergyIntelCoordinator = hass.data[DOMAIN][entry.entry_id][
-        DATA_INTEL_COORDINATOR
-    ]
+    intel_coordinator: CombinedEnergyIntelCoordinator = hass.data[DOMAIN][
+        entry.entry_id
+    ][DATA_INTEL_COORDINATOR]
     installation = client.bootstrap.installation
 
     LOGGER.info("Setting up Combined Energy sensors")
