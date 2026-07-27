@@ -21,18 +21,23 @@
   "issues": {
     "needs_reconfigure": {
       "title": "Reconfiguration required",
-      "description": "This integration was upgraded and now requires reconfiguration before it can run correctly.\n\nTo fix this:\n1. Open **Settings → Devices & services**.\n2. Open **Combined Energy**.\n3. Select **Reconfigure** and complete the prompts.\n\nReconfiguring refreshes connection details and applies the updated sensor/statistics behavior."
-    }
-  },
-  "repair_flow": {
-    "step": {
-      "confirm": {
-        "title": "Start reconfiguration",
-        "description": "Starting this repair opens the Combined Energy reconfigure flow so you can update the bridge connection details."
+      "description": "This integration was upgraded and now requires reconfiguration before it can run correctly.\n\nTo fix this:\n1. Open **Settings → Devices & services**.\n2. Open **Combined Energy**.\n3. Select **Reconfigure** and complete the prompts.\n\nReconfiguring refreshes connection details and applies the updated sensor/statistics behavior.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Start reconfiguration",
+            "description": "Starting this repair opens the Combined Energy reconfigure flow so you can update the bridge connection details."
+          },
+          "reconfigure": {
+            "title": "Reconfigure bridge connection",
+            "description": "Update the bridge connection details used by Combined Energy.",
+            "data": {
+              "name": "The name of this installation",
+              "host": "Bridge host or IP address"
+            }
+          }
+        }
       }
-    },
-    "abort": {
-      "reconfigure_started": "Reconfigure flow started. Complete the prompts to finish the repair."
     }
   },
   "entity": {
