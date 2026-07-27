@@ -33,6 +33,14 @@ After you have installed the custom component (see above):
 4. Provide the local bridge host/IP address. The integration will discover broker details from the bridge and subscribe to local MQTT readings.
 5. Click Submit to add the integration.
 
+### Upgrading from older versions
+
+If you are upgrading from a version that used the cloud API, Home Assistant will prompt you to reconfigure the integration so it can switch to the local bridge connection.
+
+1. Open **Settings -> Devices & services**.
+2. Open **Combined Energy**.
+3. Select **Reconfigure** and provide the bridge host/IP address.
+
 ### Testing
 
 Prerequisite that [uv](https://docs.astral.sh/uv/) is installed. Clone this repository and run the following command to test the integration:
