@@ -109,9 +109,7 @@ async def test_needs_reconfigure_flow_reconfigure_updates_entry_and_reloads():
     cleanup_stale_sensor_entities.assert_called_once_with(
         flow.hass, entry, bootstrap.installation
     )
-    delete_issue.assert_called_once_with(
-        flow.hass, DOMAIN, "entry-1_needs_reconfigure"
-    )
+    delete_issue.assert_called_once_with(flow.hass, DOMAIN, "entry-1_needs_reconfigure")
     flow.hass.config_entries.async_update_entry.assert_called_once_with(
         entry,
         title="Combined Energy Updated",
