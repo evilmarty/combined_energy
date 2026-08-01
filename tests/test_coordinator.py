@@ -75,7 +75,6 @@ async def test_coordinator_updates_from_mqtt_listener(
     mock_hass,
     mock_entry,
     readings_store,
-    sample_readings: Readings,
     example_log_payload: bytes,
 ):
     """Coordinator parses subscribed readings messages."""
@@ -91,9 +90,10 @@ async def test_coordinator_updates_from_mqtt_listener(
     await asyncio.sleep(0)
 
     assert coordinator.data is not None
+    source_readings = Readings.from_mqtt_message(example_log_payload)
     source_grid = next(
         device
-        for device in sample_readings.devices
+        for device in source_readings.devices
         if isinstance(device, GridMeterReading)
     )
     result_grid = next(
