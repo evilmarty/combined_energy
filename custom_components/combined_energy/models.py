@@ -111,7 +111,7 @@ class DeviceConnectionDetails(BaseModel):
 class DeviceActionDetail(BaseModel):
     """Action metadata for a controllable device."""
 
-    allow: list[str]
+    allow: list[str] = Field(default_factory=list)
     name: str
     label: str
     type: str
