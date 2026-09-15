@@ -149,6 +149,22 @@ class TestInstallation:
             device.device_type == "WATER_HEATER" for device in installation.devices
         )
 
+    def test_installation_defaults_missing_action_allow(self, fixture_path):
+        """Accept bridge action metadata without an allow list."""
+        payload = json.loads((fixture_path / "installation.json").read_text())
+        index = next(
+            index
+            for index, device in enumerate(payload["devices"])
+            if device.get("actionDetails")
+        )
+        payload["devices"][index]["actionDetails"][0].pop("allow")
+
+        installation = Installation.model_validate(payload)
+
+        assert installation.devices[index].action_details is not None
+        assert installation.devices[index].action_details[0].allow == []
+        assert installation.gateway_id == payload["gwId"]
+
     def test_installation_defaults_missing_device_flags(self, fixture_path):
         """Default missing storage/consumer flags to false."""
         payload = json.loads((fixture_path / "installation.json").read_text())
