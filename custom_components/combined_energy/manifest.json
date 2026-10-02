@@ -13,7 +13,7 @@
   "issue_tracker": "https://github.com/evilmarty/combined_energy/issues",
   "quality_scale": "silver",
   "requirements": [
-    "paho-mqtt==2.1.0"
+    "paho-mqtt>=2.1.0"
   ],
   "version": "0.7.0"
 }
