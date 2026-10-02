@@ -76,9 +76,8 @@ async def test_validate_bridge_host_raises_when_no_gwid(
         with patch(
             "custom_components.combined_energy.bridge.async_get_clientsession",
             return_value=session,
-        ):
-            with pytest.raises(BridgeBootstrapError):
-                await validate_bridge_host(hass, host)
+        ), pytest.raises(BridgeBootstrapError):
+            await validate_bridge_host(hass, host)
 
 
 @pytest.mark.asyncio
