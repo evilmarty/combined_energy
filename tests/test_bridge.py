@@ -73,12 +73,14 @@ async def test_validate_bridge_host_raises_when_no_gwid(
     hass = MagicMock()
 
     async with ClientSession() as session:
-        with patch(
-            "custom_components.combined_energy.bridge.async_get_clientsession",
-            return_value=session,
+        with (
+            patch(
+                "custom_components.combined_energy.bridge.async_get_clientsession",
+                return_value=session,
+            ),
+            pytest.raises(BridgeBootstrapError),
         ):
-            with pytest.raises(BridgeBootstrapError):
-                await validate_bridge_host(hass, host)
+            await validate_bridge_host(hass, host)
 
 
 @pytest.mark.asyncio
