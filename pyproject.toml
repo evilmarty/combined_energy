@@ -9,7 +9,7 @@ dependencies = []
 dev = [
     "aiohttp>=3.12.15",
     "freezegun>=1.5.5",
-    "homeassistant-stubs>=2026.2.3",
+    "homeassistant-stubs>=2026.10.0",
     "paho-mqtt==2.1.0",
     "pydantic>=2.13.5",
     "pytest>=9.1.1",
