@@ -11,6 +11,7 @@ from custom_components.combined_energy.coordinator import (
 )
 from custom_components.combined_energy.models import (
     Device,
+    DeviceConnectionDetails,
     GridMeterReading,
     Installation,
     Intel,
@@ -325,6 +326,30 @@ class TestCombinedEnergyReadingsSensor:
             system_sensor.device_info["identifiers"]
             != combiner_sensor.device_info["identifiers"]
         )
+        assert system_sensor.device_info["connections"] == set()
+        assert combiner_sensor.device_info["connections"] == set()
+
+    @pytest.mark.parametrize(
+        "connection_details",
+        [None, {}, {"connection": {}}],
+        ids=["no-details", "no-connection", "no-mac"],
+    )
+    def test_device_info_without_mac_has_iterable_connections(
+        self, installation, mock_coordinator, entity_description, connection_details
+    ):
+        """Devices without a MAC must supply iterable registry connections."""
+        device = installation.devices[1]
+        device.connection_details = (
+            DeviceConnectionDetails.model_validate(connection_details)
+            if connection_details is not None
+            else None
+        )
+        sensor = CombinedEnergyReadingsSensor(
+            installation, device, entity_description, mock_coordinator
+        )
+
+        assert set(sensor.device_info["connections"]) == set()
+        assert sensor.device_info["connections"] == set()
 
     def test_device_info_includes_connection_details(
         self, installation, mock_coordinator, mock_hass
