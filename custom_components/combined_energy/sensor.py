@@ -1431,7 +1431,7 @@ class CombinedEnergyReadingsSensor(
 
         identifier = f"install_{installation.id}-device_{device.id}"
         self._attr_unique_id = f"{identifier}-{description.key}"
-        connections = None
+        connections: set[tuple[str, str]] = set()
         if (
             device.connection_details is not None
             and device.connection_details.connection is not None
