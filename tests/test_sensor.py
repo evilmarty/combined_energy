@@ -19,6 +19,7 @@ from custom_components.combined_energy.models import (
     SystemReading,
 )
 from custom_components.combined_energy.sensor import (
+    SENSOR_DESCRIPTIONS_TARIFF_DETAILS,
     CombinedEnergyReadingsSensor,
     CombinedEnergySensorDescription,
     CombinedEnergyTariffSensor,
@@ -415,16 +416,40 @@ class TestCombinedEnergyTariffSensor:
         """Mock intel coordinator with current tariff data."""
         return MagicMock(spec=CombinedEnergyIntelCoordinator, data=intel_data)
 
+    @pytest.mark.parametrize(
+        ("key", "expected_value"),
+        [("cost", 0.2562), ("daily_fee", 1.3292), ("feed_in", 0.02)],
+    )
+    def test_tariff_rate_sensor_metadata(
+        self, installation, intel_coordinator, key, expected_value
+    ):
+        """Tariff rates retain measurement statistics without monetary metadata."""
+        if key == "cost":
+            sensor = PriceSensor(installation, intel_coordinator)
+        else:
+            description = next(
+                description
+                for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS
+                if description.key == key
+            )
+            sensor = CombinedEnergyTariffSensor(
+                installation, intel_coordinator, description
+            )
+
+        assert sensor.device_class is None
+        assert sensor.state_class == SensorStateClass.MEASUREMENT
+        assert sensor.native_unit_of_measurement == "AUD/kWh"
+        assert sensor.native_value == expected_value
+        assert sensor.unique_id == f"install_{installation.id}-tariff-details-{key}"
+
     def test_tariff_daily_fee_sensor_value(
         self, installation, intel_coordinator, mock_hass
     ):
         """Tariff daily fee should be exposed as dollars."""
-        description = CombinedEnergySensorDescription(
-            key="daily_fee",
-            translation_key="tariff_details_daily_fee",
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement="AUD/kWh",
-            device_class=SensorDeviceClass.MONETARY,
+        description = next(
+            description
+            for description in SENSOR_DESCRIPTIONS_TARIFF_DETAILS
+            if description.key == "daily_fee"
         )
         sensor = CombinedEnergyTariffSensor(
             installation=installation,

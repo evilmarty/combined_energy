@@ -1272,7 +1272,6 @@ SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
         icon="mdi:cash-sync",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
     ),
     CombinedEnergySensorDescription(
@@ -1281,7 +1280,6 @@ SENSOR_DESCRIPTIONS_TARIFF_DETAILS = [
         icon="mdi:cash-plus",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
-        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
     ),
 ]
@@ -1566,7 +1564,6 @@ class PriceSensor(CombinedEnergyTariffSensor):
                 icon="mdi:cash-minus",
                 state_class=SensorStateClass.MEASUREMENT,
                 native_unit_of_measurement=f"AUD/{UnitOfEnergy.KILO_WATT_HOUR}",
-                device_class=SensorDeviceClass.MONETARY,
                 suggested_display_precision=2,
             ),
         )
